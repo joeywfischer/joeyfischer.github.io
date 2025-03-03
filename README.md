@@ -1,5 +1,15 @@
+<a name="top"></a>
+<hr>
+
 # Welcome! Here is a little about my skills, interests, and experience.
 
+- [Education](#education)  
+- [Work Experience](#experience)  
+- [Certifications](#certifications)  
+- [Skills](#skills)  
+- [Activities & Involvements](#activities)
+
+<a name="education"></a>
 ## Education  
 ### University of Denver - Denver, Colorado  
 **Magna Cum Laude Bachelor of Science - Mathematics**  
@@ -18,6 +28,7 @@
 
 ---
 
+<a name="experience"></a>
 ## Work Experience  
 
 ### Heico Companies LLC - Warrenville, Illinois  
@@ -39,8 +50,21 @@
 
 ---
 
-## Certifications & Skills  
+<a name="certifications"></a>
+## Certifications  
 
+| Certification | Provider |
+|--------------|----------|
+| **PCEP: Python Beginner** | Python Institute |
+| **PCAP: Python Intermediate** | Python Institute |
+| **Microsoft Excel Expert** | Microsoft |
+| **Microsoft PowerPoint Associate** | Microsoft |
+| **Microsoft Word Expert** | Microsoft |
+
+---
+
+<a name="skills"></a>
+## Skills
 - **Python**: *PCEP: Beginner* | *PCAP: Intermediate*  
 - **Microsoft Office**: *Certified in Excel, PowerPoint, and Word*  
 - **Power Platforms**: *Proficient in Power BI, Power Apps, Power Automate*  
@@ -49,6 +73,7 @@
 
 ---
 
+<a name="activities"></a>
 ## Activities & Involvements  
 
 - **Member of Math Club** - University of Denver *(2021 - Present)*  
