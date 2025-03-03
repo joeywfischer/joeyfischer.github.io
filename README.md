@@ -56,5 +56,5 @@
 
 ---
 
-**Contact: [LinkedIn](https://www.linkedin.com/in/j.w.fischer/)  
+**Contact**: [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ )  
 
