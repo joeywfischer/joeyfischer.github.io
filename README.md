@@ -56,7 +56,5 @@
 
 ---
 
-🔗 **[Visit My GitHub Portfolio](https://yourusername.github.io/)**  
-
-📬 **Contact:** [Your Email] | [LinkedIn](https://www.linkedin.com/in/yourusername/)  
+**Contact: [LinkedIn](https://www.linkedin.com/in/j.w.fischer/)  
 
