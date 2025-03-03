@@ -3,14 +3,15 @@
 
 # Welcome! Here is a little about my skills, interests, and experience.
 
-- [Education](#education)  
-- [Work Experience](#experience)  
-- [Certifications](#certifications)  
-- [Skills](#skills)  
-- [Activities & Involvements](#activities)
+🎓 [Education](#education)  
+💼 [Work Experience](#experience)  
+🏅 [Certifications](#certifications)  
+🛠️ [Skills](#skills)  
+🏆 [Activities & Involvements](#activities) <br>
+🚜 [Personal Passions](#personal)
 
 <a name="education"></a>
-## Education  
+## 🎓 Education  
 ### University of Denver - Denver, Colorado  
 **Magna Cum Laude Bachelor of Science - Mathematics**  
 *Minor: Business Analytics/Statistics*  
@@ -29,7 +30,7 @@
 ---
 
 <a name="experience"></a>
-## Work Experience  
+## 💼 Work Experience  
 
 ### Heico Companies LLC - Warrenville, Illinois  
 **Corporate IT Intern** *(June - August 2023)*  
@@ -51,7 +52,7 @@
 ---
 
 <a name="certifications"></a>
-## Certifications  
+## 🏅 Certifications  
 
 | Certification | Provider |
 |--------------|----------|
@@ -64,7 +65,7 @@
 ---
 
 <a name="skills"></a>
-## Skills
+## 🛠️ Skills
 - **Python**: *PCEP: Beginner* | *PCAP: Intermediate*  
 - **Microsoft Office**: *Certified in Excel, PowerPoint, and Word*  
 - **Power Platforms**: *Proficient in Power BI, Power Apps, Power Automate*  
@@ -74,12 +75,22 @@
 ---
 
 <a name="activities"></a>
-## Activities & Involvements  
+## 🏆 Activities & Involvements  
 
 - **Member of Math Club** - University of Denver *(2021 - Present)*  
-- **Member of DU Jet Engine Team** *(2023 - Present)*  
+- **Member of DU Jet Engine Team** *(2023 - Present)*
 
 ---
 
-**Contact**: [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ )  
+<a name="personal"></a>
+## 🚜 Personal Passions
+
+- **Agrilculture**: Raised as the 5th generation on my family's farm in rural Minnesota hoping to oneday connect my skills to improving conditions for U.S. farmers.
+- **Animal lover**: I've had pet cats, dogs, cows, chickens, pigs, fish, geese, ducks, sheep, pheasants, and a hamster.
+- **Video Games**: I love tactical RPGs where I can use my mathematics skills to compute odds/probability and build a strategy.
+- **Numbers**: Always been fascinated with numbers, statistics, and mathematics.
+
+---
+
+**Contact**: If you share any interests or want to connect feel free to reach out to my [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ )!
 
