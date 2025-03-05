@@ -23,6 +23,10 @@
 - Dean’s List  
 - Hornbeck Scholar’s List  
 
+![DUphoto](assets/uofdenverphoto.jpeg)
+
+[⬆ Back to Top](#top)
+
 ---
 
 <a name="experience"></a>
