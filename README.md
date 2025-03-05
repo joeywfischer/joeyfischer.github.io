@@ -166,8 +166,7 @@
 
 ## 🔗 Contact and Additional Information
 
-If you share any interests or want to connect feel free to reach out to my [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ )! <br>
-Email: joeyfischersesm@gmail.com
+If you share any interests or want to connect feel free to reach out to my [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ ) or email: joeyfischersesm@gmail.com !
 
 Feel free to read my [resume and letters of recommendation from former employers](https://github.com/joeywfischer/joeyfischer.github.io/tree/main/resources)! <br>
 
