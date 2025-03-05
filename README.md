@@ -10,7 +10,7 @@
 🛠️ [Skills](#skills)  
 🏆 [Activities & Involvements](#activities) <br>
 🚜 [Personal Passions](#personal) <br>
-🔗 [Contact](#contact)
+🔗 [Contact and Additional Information](#contact)
 
 <a name="education"></a>
 ## 🎓 Education  
@@ -115,11 +115,18 @@
 
 <a name="skills"></a>
 ## 🛠️ Skills
+
+### Hard Skills
 - **Python**: *PCEP: Beginner* | *PCAP: Intermediate*  
 - **Microsoft Office**: *Certified in Excel, PowerPoint, and Word*  
 - **Power Platforms**: *Proficient in Power BI, Power Apps, Power Automate*  
 - **Mathematical & Statistical Analysis**: Passion for data-driven decision-making  
 - **Artificial Intelligence**: Active research and interest in AI advancements and applications  
+
+### Soft Skills
+- **Collaboration**: work together with fellow Calculus tutors to help students
+- **Problem-Sovler**: analytical and mathematical mind that finds logical solutions to problems
+- **Adaptability**: lived and adapted in diverse locations: rural Minnesotan farm, Denver, downtown Chicago, New Hampshire, London
 
 [⬆ Back to Top](#top)
 
@@ -157,9 +164,13 @@
 
 <a name="contact"></a>
 
-## 🔗 Contact
+## 🔗 Contact and Additional Information
 
-If you share any interests or want to connect feel free to reach out to my [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ )!
+If you share any interests or want to connect feel free to reach out to my [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ )! <br>
+Email: joeyfischersesm@gmail.com
+
+Read my [resume and letters of recommendation from former employers]!
+(https://github.com/joeywfischer/joeyfischer.github.io/tree/main/resources) <br>
 
 [⬆ Back to Top](#top)
 
