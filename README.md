@@ -9,7 +9,8 @@
 🏅 [Certifications](#certifications)  
 🛠️ [Skills](#skills)  
 🏆 [Activities & Involvements](#activities) <br>
-🚜 [Personal Passions](#personal)
+🚜 [Personal Passions](#personal) <br>
+🔗 [Contact](#contact)
 
 <a name="education"></a>
 ## 🎓 Education  
@@ -32,22 +33,24 @@
 <a name="experience"></a>
 ## 💼 Work Experience  
 
-### Heico Companies LLC - Warrenville, Illinois  
+### <img src="assets/Heicologo.png" width="50" style="vertical-align: middle; margin-right: 10px;"> | Heico Companies LLC - Warrenville, Illinois 
 **Corporate IT Intern** *(June - August 2023)*  
 - Used **data analytics** to generate reports for business decisions via **Power BI**  
 - Integrated **AI automation** into company processes using **Power Automate**  
-- Developed a **PTO tracking system** for managers using **Power Apps**  
+- Developed a **PTO tracking system** for managers using **Power Apps**
 
-### Hiiguru Inc. - London, United Kingdom  
+### <img src="assets/hiigurulogo.jpeg" width="35" style="vertical-align: middle; margin-right: 10px;"> | Hiiguru Inc. - London, United Kingdom  
 **Intern** *(September - December 2023)*  
 - Led the **implementation of AI** in company’s social media strategies  
 - Conducted **market research** for both B2B and B2C applications  
 - Cleaned and analyzed **business data** to create actionable reports  
 
-### University of Denver - Math Department - Denver, Colorado  
+### <img src="assets/DUlogo.png" width="50" style="vertical-align: middle; margin-right: 10px;"> | University of Denver - Math Department - Denver, Colorado  
 **Academic Tutor** *(January 2024 - Present)*  
 - Tutor for **all levels of Calculus** at the Anderson Academic Commons  
 - Work collaboratively with fellow tutors to ensure student success  
+
+[⬆ Back to Top](#top)
 
 ---
 
@@ -61,18 +64,36 @@
 - Investigated AI models' accuracy and challenges in mathematical reasoning  
 - Gained insights into AI model training and development
 
+<div align="center">
+  <img src="assets/AIprocess.jpeg" width="300">
+</div>
+
 **Independent Knots and Quandles Study**
 - Researched mathematical theory of Knots and Quanles
 - Proved the unqiueness of the first seven prime knots
 - Presented on study to University of Denver math department
+
+<div align="center">
+  <img src="assets/Primeknots.jpeg" width="300">
+</div>
 
 ### Python Samples 
 
 **Map of Colorado Elevation**
 - Created a grayscale gradient map of Colorado elevations using the University of Denver's DUdraw library
 
+<div align="center">
+  <img src="assets/coloradoelevation.jpeg" width="300">
+</div>
+
 **Opitcal Illusion**
 - Coded an opitcal illusion using the University of Denver's DUdraw library
+
+<div align="center">
+  <img src="assets/opticalillusion.jpeg" width="300">
+</div>
+
+[⬆ Back to Top](#top)
 
 ---
 
@@ -87,6 +108,8 @@
 | **Microsoft PowerPoint Associate** | Microsoft |
 | **Microsoft Word Expert** | Microsoft |
 
+[⬆ Back to Top](#top)
+
 ---
 
 <a name="skills"></a>
@@ -96,6 +119,8 @@
 - **Power Platforms**: *Proficient in Power BI, Power Apps, Power Automate*  
 - **Mathematical & Statistical Analysis**: Passion for data-driven decision-making  
 - **Artificial Intelligence**: Active research and interest in AI advancements and applications  
+
+[⬆ Back to Top](#top)
 
 ---
 
@@ -109,6 +134,8 @@
 - **Member of Math Club** - University of Denver *(2021 - Present)*  
 - **Member of DU Jet Engine Team** *(2023 - Present)*
 
+[⬆ Back to Top](#top)
+
 ---
 
 <a name="personal"></a>
@@ -119,7 +146,19 @@
 - **Video Games**: I love tactical RPGs where I can use my mathematics skills to compute odds/probability and build a strategy.
 - **Numbers**: Always been fascinated with numbers, statistics, and mathematics.
 
+<div align="center">
+  <img src="assets/farm.jpeg" width="800">
+</div>
+
+[⬆ Back to Top](#top)
+
 ---
 
-**Contact**: If you share any interests or want to connect feel free to reach out to my [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ )!
+<a name="contact"></a>
+
+## 🔗 Contact
+
+If you share any interests or want to connect feel free to reach out to my [LinkedIn](https://www.linkedin.com/in/j-w-fischer/ )!
+
+[⬆ Back to Top](#top)
 
