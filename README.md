@@ -63,17 +63,16 @@
 - University-sponsored undergraduate research into AI's effectiveness in solving advanced mathematical problems  
 - Investigated AI models' accuracy and challenges in mathematical reasoning  
 - Gained insights into AI model training and development
-**[Presentation**
-[Honors Thesis](undergradresearch/Efficacy%20of%20Artificial%20Intelligence%20Models%20in%20Advanced%20Mathematics.pptx)
 
 <div align="center">
   <img src="assets/AIprocess.jpeg" width="275">
 </div>
 
-**Independent Knots and Quandles Study**
+**Independent [Knots and Quandles](https://github.com/joeywfischer/joeyfischer.github.io/blob/main/undergradresearch/Quandles%20and%20Knots.pptx) Study**
 - Researched mathematical theory of Knots and Quanles
 - Proved the unqiueness of the first seven prime knots
 - Presented on study to University of Denver math department
+
 
 <div align="center">
   <img src="assets/Primeknots.jpeg" width="275">
@@ -81,14 +80,14 @@
 
 ### Python Samples 
 
-**Map of Colorado Elevation**
+**[Map of Colorado Elevation](https://github.com/joeywfischer/joeyfischer.github.io/tree/main/python/COelevation)**
 - Created a grayscale gradient map of Colorado elevations using the University of Denver's DUdraw library
 
 <div align="center">
   <img src="assets/coloradoelevation.jpeg" width="150">
 </div>
 
-**Opitcal Illusion** 
+**[Opitcal Illusion](https://github.com/joeywfischer/joeyfischer.github.io/blob/main/python/JoeyFischer.OpticalIllusion.py)** 
 - Coded an opitcal illusion using the University of Denver's DUdraw library
 
 <div align="center">
