@@ -65,7 +65,7 @@
 - Gained insights into AI model training and development
 
 <div align="center">
-  <img src="assets/AIprocess.jpeg" width="300">
+  <img src="assets/AIprocess.jpeg" width="275">
 </div>
 
 **Independent Knots and Quandles Study**
@@ -74,7 +74,7 @@
 - Presented on study to University of Denver math department
 
 <div align="center">
-  <img src="assets/Primeknots.jpeg" width="300">
+  <img src="assets/Primeknots.jpeg" width="275">
 </div>
 
 ### Python Samples 
@@ -83,14 +83,14 @@
 - Created a grayscale gradient map of Colorado elevations using the University of Denver's DUdraw library
 
 <div align="center">
-  <img src="assets/coloradoelevation.jpeg" width="300">
+  <img src="assets/coloradoelevation.jpeg" width="150">
 </div>
 
-**Opitcal Illusion**
+**Opitcal Illusion** 
 - Coded an opitcal illusion using the University of Denver's DUdraw library
 
 <div align="center">
-  <img src="assets/opticalillusion.jpeg" width="300">
+  <img src="assets/opticalillusion.jpeg" width="150">
 </div>
 
 [⬆ Back to Top](#top)
