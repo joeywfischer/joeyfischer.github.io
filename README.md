@@ -59,10 +59,12 @@
 
 ### Undergraduate Research
 
-**Honors Thesis: “Efficacy of Artificial Intelligence in Advanced Mathematics”**  
+**[Honors Thesis](https://github.com/joeywfischer/joeyfischer.github.io/blob/main/undergradresearch/Efficacy%20of%20Artificial%20Intelligence%20Models%20in%20Advanced%20Mathematics.pptx): “Efficacy of Artificial Intelligence in Advanced Mathematics”**  
 - University-sponsored undergraduate research into AI's effectiveness in solving advanced mathematical problems  
 - Investigated AI models' accuracy and challenges in mathematical reasoning  
 - Gained insights into AI model training and development
+**[Presentation**
+[Honors Thesis](undergradresearch/Efficacy%20of%20Artificial%20Intelligence%20Models%20in%20Advanced%20Mathematics.pptx)
 
 <div align="center">
   <img src="assets/AIprocess.jpeg" width="275">
