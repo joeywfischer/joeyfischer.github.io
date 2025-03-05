@@ -5,6 +5,7 @@
 
 🎓 [Education](#education)  
 💼 [Work Experience](#experience)  
+📊 [Projects](#projects) <br>
 🏅 [Certifications](#certifications)  
 🛠️ [Skills](#skills)  
 🏆 [Activities & Involvements](#activities) <br>
@@ -17,11 +18,6 @@
 *Minor: Business Analytics/Statistics*  
 - **Major GPA**: 3.94 | **Cumulative GPA**: 3.93  
 - **Expected Graduation**: June 2025  
-
-**Thesis: “Efficacy of Artificial Intelligence in Advanced Mathematics”**  
-- University-sponsored undergraduate research into AI's effectiveness in solving advanced mathematical problems  
-- Investigated AI models' accuracy and challenges in mathematical reasoning  
-- Gained insights into AI model training and development  
 
 **Honors & Achievements:**  
 - Dean’s List  
@@ -51,6 +47,31 @@
 
 ---
 
+<a name="projects"></a>
+## 📊 Projects
+
+### Undergraduate Research
+
+**Honors Thesis: “Efficacy of Artificial Intelligence in Advanced Mathematics”**  
+- University-sponsored undergraduate research into AI's effectiveness in solving advanced mathematical problems  
+- Investigated AI models' accuracy and challenges in mathematical reasoning  
+- Gained insights into AI model training and development
+
+**Independent Knots and Quandles Study**
+- Researched mathematical theory of Knots and Quanles
+- Proved the unqiueness of the first seven prime knots
+- Presented on study to University of Denver math department
+
+### Python Samples 
+
+**Map of Colorado Elevation**
+- Created a grayscale gradient map of Colorado elevations using the University of Denver's DUdraw library
+
+**Opitcal Illusion**
+- Coded an opitcal illusion using the University of Denver's DUdraw library
+
+---
+
 <a name="certifications"></a>
 ## 🏅 Certifications  
 
@@ -77,6 +98,10 @@
 <a name="activities"></a>
 ## 🏆 Activities & Involvements  
 
+**Presenter at 22nd Annual Pikes Peak Undergraduate Math Conference**
+- Presented undergraduate honors thesis: “Efficacy of Artificial Intelligence in Advanced Mathematics”
+
+**Undergraduate Involvements**
 - **Member of Math Club** - University of Denver *(2021 - Present)*  
 - **Member of DU Jet Engine Team** *(2023 - Present)*
 
