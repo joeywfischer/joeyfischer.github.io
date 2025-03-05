@@ -1,7 +1,7 @@
 <a name="top"></a>
 <hr>
 
-# Welcome! Here is a little about my skills, interests, and experience.
+# Welcome! My name is Joey Fischer! Here is a little about me.
 
 🎓 [Education](#education)  
 💼 [Work Experience](#experience)  
