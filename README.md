@@ -69,9 +69,9 @@
 </div>
 
 **Independent [Knots and Quandles](https://github.com/joeywfischer/joeyfischer.github.io/blob/main/undergradresearch/Quandles%20and%20Knots.pptx) Study**
-- Researched mathematical theory of Knots and Quanles
-- Proved the unqiueness of the first seven prime knots
-- Presented on study to University of Denver math department
+- Researched mathematical theory of Knots and Quandles
+- Proved the uniqueness of the first seven prime knots
+- Presented on study to the University of Denver math department
 
 
 <div align="center">
