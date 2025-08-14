@@ -85,8 +85,12 @@ if invoice_file and template_file:
     # Get the total invoice amount from cell G12 of the 'Detail' sheet
     # Assuming G12 contains a single value representing the total
     total_invoice_amount = df_invoice.iloc[11, 6] # Row 12, Column G (0-indexed)
-
+    
+    # Display the totals for debugging
+    st.write(f"Total NET in template: {total_net_template:.2f}")
+    st.write(f"Total invoice amount: {total_invoice_amount:.2f}")
     # Compare the totals and display a message
+    
     if abs(total_net_template - total_invoice_amount) < 0.01: # Use a small tolerance for floating point comparison
         st.success("Processing complete! The total of the template NET amounts matches the total invoice amount.")
     else:
