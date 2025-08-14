@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("Aflac Invoice Processor")
+st.title("Benefits Invoice Processor")
+st.header('Aflac')
 
-invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
+invoice_file = st.file_uploader("Upload Invoice Excel File", type=["xlsx"])
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 
 if invoice_file and template_file:
@@ -86,15 +87,15 @@ if invoice_file and template_file:
 
 
     # Display the totals for debugging
-    st.write(f"Total NET in template: {total_net_template:.2f}")
-    st.write(f"Total invoice amount: {total_invoice_premium:.2f}")
+    st.write(f"Total amounr in template: {total_net_template:.2f}")
+    st.write(f"Total amount in invoice: {total_invoice_premium:.2f}")
 
 
     # Compare the totals and display a message
     if abs(total_net_template - total_invoice_premium) < 0.01: # Use a small tolerance for floating point comparison
-        st.success("Processing complete! The total of the template NET amounts matches the total invoice amount.")
+        st.success("Processing complete! No Errors Found.")
     else:
-        st.warning(f"Processing complete, but the total of the template NET amounts ({total_net_template:.2f}) does not match the total invoice amount ({total_invoice_premium:.2f}). Please review the output.")
+        st.warning(f"Processing complete, but the total of the template NET amounts ({total_net_template:.2f}) does not match the total invoice monthly premium amount ({total_invoice_premium:.2f}). Please review the output.")
 
 
     output = io.BytesIO()
@@ -104,6 +105,6 @@ if invoice_file and template_file:
     st.download_button(
         label="Download Updated Medius Template",
         data=output,
-        file_name="Complete_Aflac_Medius_Template.xlsx",
+        file_name="Complete_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-owizardssheet"
     )
