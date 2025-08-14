@@ -9,7 +9,6 @@ template_file = st.file_uploader("Upload Medius Template Excel File", type=["xls
 
 if invoice_file and template_file:
     df_invoice_detail = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
-    df_invoice_summary = pd.read_excel(invoice_file, sheet_name='Summary', engine='openpyxl')
     df_template = pd.read_excel(template_file, engine='openpyxl')
 
     df_relevant = df_invoice_detail[['Company', 'Monthly Premium']].dropna()
@@ -82,20 +81,20 @@ if invoice_file and template_file:
     # Calculate total of 'NET' column in the updated template
     total_net_template = df_template['NET'].sum()
 
-    # Get the total invoice amount from cell G12 of the 'Summary' sheet
-    # Assuming G12 contains a single value representing the total
-    total_invoice_amount = df_invoice_summary.iloc[11, 6] # Row 12, Column G (0-indexed)
+    # Calculate the total of 'Monthly Premium' in the 'Detail' sheet
+    total_invoice_premium = df_invoice_detail['Monthly Premium'].sum()
+
 
     # Display the totals for debugging
     st.write(f"Total NET in template: {total_net_template:.2f}")
-    st.write(f"Total invoice amount: {total_invoice_amount:.2f}")
+    st.write(f"Total invoice amount: {total_invoice_premium:.2f}")
 
 
     # Compare the totals and display a message
-    if abs(total_net_template - total_invoice_amount) < 0.01: # Use a small tolerance for floating point comparison
+    if abs(total_net_template - total_invoice_premium) < 0.01: # Use a small tolerance for floating point comparison
         st.success("Processing complete! The total of the template NET amounts matches the total invoice amount.")
     else:
-        st.warning(f"Processing complete, but the total of the template NET amounts ({total_net_template:.2f}) does not match the total invoice amount ({total_invoice_amount:.2f}). Please review the output.")
+        st.warning(f"Processing complete, but the total of the template NET amounts ({total_net_template:.2f}) does not match the total invoice amount ({total_invoice_premium:.2f}). Please review the output.")
 
 
     output = io.BytesIO()
