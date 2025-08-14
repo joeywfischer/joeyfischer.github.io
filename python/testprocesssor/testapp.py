@@ -87,7 +87,7 @@ if invoice_file and template_file:
 
 
     # Display the totals for debugging
-    st.write(f"Total amounr in template: {total_net_template:.2f}")
+    st.write(f"Total amount in template: {total_net_template:.2f}")
     st.write(f"Total amount in invoice: {total_invoice_premium:.2f}")
 
 
