@@ -8,11 +8,11 @@ invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"]
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 
 if invoice_file and template_file:
-    df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
-    df_division = pd.read_excel(invoice_file, sheet_name='Division', engine='openpyxl')
+    df_invoice_detail = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
+    df_invoice_summary = pd.read_excel(invoice_file, sheet_name='Summary', engine='openpyxl')
     df_template = pd.read_excel(template_file, engine='openpyxl')
 
-    df_relevant = df_invoice[['Company', 'Monthly Premium']].dropna()
+    df_relevant = df_invoice_detail[['Company', 'Monthly Premium']].dropna()
     df_company_totals = df_relevant.groupby('Company')['Monthly Premium'].sum().reset_index()
 
     company_code_mapping = {
@@ -51,13 +51,13 @@ if invoice_file and template_file:
     description_totals = {}
     for desc, info in description_source_mapping.items():
         if info['type'] == 'division':
-            filtered_df = df_invoice[
-                (df_invoice['Company'] == info['company']) &
-                (df_invoice['Division'].astype(str) == str(info['code']))
+            filtered_df = df_invoice_detail[
+                (df_invoice_detail['Company'] == info['company']) &
+                (df_invoice_detail['Division'].astype(str) == str(info['code']))
             ].dropna(subset=['Monthly Premium'])
         else:
-            filtered_df = df_invoice[
-                df_invoice['Company'] == info['code']
+            filtered_df = df_invoice_detail[
+                df_invoice_detail['Company'] == info['code']
             ].dropna(subset=['Monthly Premium'])
         description_totals[desc] = filtered_df['Monthly Premium'].sum()
 
@@ -65,7 +65,7 @@ if invoice_file and template_file:
         rows_to_update = df_template[df_template['DESC'].str.contains(desc, case=False, na=False)].index
         df_template.loc[rows_to_update, 'NET'] = total
 
-    df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
+    df_hhi_thc = df_invoice_detail[df_invoice_detail['Company'].isin(['HHI', 'THC'])].copy()
     df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str)
     df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].str[-4:]
     df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
@@ -82,15 +82,16 @@ if invoice_file and template_file:
     # Calculate total of 'NET' column in the updated template
     total_net_template = df_template['NET'].sum()
 
-    # Get the total invoice amount from cell G12 of the 'Detail' sheet
+    # Get the total invoice amount from cell G12 of the 'Summary' sheet
     # Assuming G12 contains a single value representing the total
-    total_invoice_amount = df_invoice.iloc[11, 6] # Row 12, Column G (0-indexed)
-    
+    total_invoice_amount = df_invoice_summary.iloc[11, 6] # Row 12, Column G (0-indexed)
+
     # Display the totals for debugging
     st.write(f"Total NET in template: {total_net_template:.2f}")
     st.write(f"Total invoice amount: {total_invoice_amount:.2f}")
+
+
     # Compare the totals and display a message
-    
     if abs(total_net_template - total_invoice_amount) < 0.01: # Use a small tolerance for floating point comparison
         st.success("Processing complete! The total of the template NET amounts matches the total invoice amount.")
     else:
