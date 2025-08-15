@@ -1,0 +1,75 @@
+import streamlit as st
+import pandas as pd
+import io
+
+st.title("Invoice Processor")
+
+invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
+template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
+
+if invoice_file and template_file:
+    df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
+    df_division = pd.read_excel(invoice_file, sheet_name='Division', engine='openpyxl')
+    df_template = pd.read_excel(template_file, sheet_name=0, engine='openpyxl')
+    df_mapping = pd.read_excel(template_file, sheet_name='Mapping', engine='openpyxl')
+
+    # Company Code Mapping
+    company_code_mapping = dict(zip(df_mapping['Invoice Company Code'], df_mapping['Template Company Code']))
+    df_template_for_merge = df_template[['Inter-Co', 'DESC', 'NET']].copy()
+    df_template_for_merge['Mapped_Invoice_Company'] = df_template_for_merge['Inter-Co'].replace(company_code_mapping)
+
+    df_relevant = df_invoice[['Company', 'Monthly Premium']].dropna()
+    df_company_totals = df_relevant.groupby('Company')['Monthly Premium'].sum().reset_index()
+
+    merged_df = pd.merge(df_template_for_merge, df_company_totals, left_on='Mapped_Invoice_Company', right_on='Company', how='left')
+    new_net_values = merged_df.set_index(df_template.index)['Monthly Premium']
+    update_condition = new_net_values.notna() & (df_template['Inter-Co'] != 'CADES')
+    df_template.loc[update_condition, 'NET'] = new_net_values[update_condition]
+
+    # Description Source Mapping
+    description_totals = {}
+    for _, row in df_mapping.iterrows():
+        desc = row['Description']
+        if pd.notna(row['Division Company']) and pd.notna(row['Division Code']):
+            filtered_df = df_invoice[
+                (df_invoice['Company'] == row['Division Company']) &
+                (df_invoice['Division'].astype(str) == str(row['Division Code']))
+            ].dropna(subset=['Monthly Premium'])
+        elif pd.notna(row['Company Code']):
+            filtered_df = df_invoice[
+                df_invoice['Company'] == row['Company Code']
+            ].dropna(subset=['Monthly Premium'])
+        else:
+            continue
+        description_totals[desc] = filtered_df['Monthly Premium'].sum()
+
+    for desc, total in description_totals.items():
+        rows_to_update = df_template[df_template['DESC'].str.contains(desc, case=False, na=False)].index
+        df_template.loc[rows_to_update, 'NET'] = total
+
+    # HHI and THC Department Mapping
+    df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
+    df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str)
+    df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].str[-4:]
+    df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
+
+    df_template['CC'] = df_template['CC'].astype(str).str.replace(r'\.0$', '', regex=True)
+    df_cc_totals['CC_Code'] = df_cc_totals['CC_Code'].astype(str)
+
+    cc_merged_df = pd.merge(df_template, df_cc_totals, left_on='CC', right_on='CC_Code', how='left')
+    match_indices = cc_merged_df[cc_merged_df['Monthly Premium'].notna()].index
+    df_template.loc[match_indices, 'NET'] = cc_merged_df.loc[match_indices, 'Monthly Premium']
+
+    df_template['CC'] = df_template['CC'].replace('nan', '', regex=False)
+
+    output = io.BytesIO()
+    df_template.to_excel(output, index=False, engine='openpyxl')
+    output.seek(0)
+
+    st.success("Processing complete!")
+    st.download_button(
+        label="Download Updated Medius Template",
+        data=output,
+        file_name="Complete_Aflac_Medius_Template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
