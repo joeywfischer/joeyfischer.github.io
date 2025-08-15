@@ -11,7 +11,7 @@ if invoice_file and template_file:
     df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
     df_division = pd.read_excel(invoice_file, sheet_name='Division', engine='openpyxl')
     df_template = pd.read_excel(template_file, sheet_name=0, engine='openpyxl')
-    df_mapping = pd.read_excel(template_file, sheet_name='Mapping', engine='openpyxl')
+    df_mapping = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
 
     # Company Code Mapping
     company_code_mapping = dict(zip(df_mapping['Invoice Company Code'], df_mapping['Template Company Code']))
