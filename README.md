@@ -150,7 +150,7 @@
 ## 🚜 Personal Passions
 
 - **Agrilculture**: Raised as the 5th generation on my family's farm in rural Minnesota hoping to oneday connect my skills to improving conditions for U.S. farmers.
-- **Animal lover**: I've had pet cats, dogs, cows, chickens, pigs, fish, geese, ducks, sheep, pheasants, and a hamster.
+- **Animal lover**: I've had pet cats, dogs, cows, chickens, pigs, rabbits, fish, geese, ducks, sheep, pheasants, and a hamster.
 - **Video Games**: I love tactical RPGs where I can use my mathematics skills to compute odds/probability and build a strategy.
 - **Numbers**: Always been fascinated with numbers, statistics, and mathematics.
 
