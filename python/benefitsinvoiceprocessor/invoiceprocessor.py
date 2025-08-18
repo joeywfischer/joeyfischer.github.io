@@ -26,7 +26,7 @@ if invoice_file and template_file:
 
     merged_df = pd.merge(df_template_for_merge, df_company_totals, left_on='Mapped_Invoice_Company', right_on='Company', how='left')
     new_net_values = merged_df.set_index(df_template.index)['Monthly Premium']
-    update_condition = new_net_values.notna() & (df_template['Inter-Co'] != 'CADES')
+    update_condition = new_net_values.notna() & (df_template['Inter-Co'] != df_code_map['Template Inter-Co'].unique())
     df_template.loc[update_condition, 'NET'] = new_net_values[update_condition]
 
     # --- Description Source Mapping ---
