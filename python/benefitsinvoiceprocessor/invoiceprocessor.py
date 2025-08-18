@@ -79,6 +79,7 @@ if invoice_file and template_file:
 
     # Remove leading '10' from Department to match CC
     df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].str.replace(r'^10', '', regex=True)
+    df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].str.replace(r'^11', '', regex=True)
 
     # Sum Monthly Premium by CC_Code
     df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
