@@ -48,7 +48,9 @@ if invoice_file and template_file:
                 df_invoice['Company'] == company_code
             ].dropna(subset=['Monthly Premium'])
 
-        description_totals[desc] = filtered_df['Monthly Premium'].sum()
+        total = filtered_df['Monthly Premium'].sum()
+        if total > 0:
+            description_totals[desc] = total
 
     for desc, total in description_totals.items():
         rows_to_update = df_template[df_template['DESC'].str.contains(desc, case=False, na=False)].index
