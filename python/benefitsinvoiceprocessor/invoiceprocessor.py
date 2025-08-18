@@ -86,7 +86,7 @@ if invoice_file and template_file:
             return dept[2:]
         return dept
 
-df_hhi_thc['CC_Code'] = df_hhi_thc.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
+    df_hhi_thc['CC_Code'] = df_hhi_thc.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
 
     # Sum Monthly Premium by CC_Code
     df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
