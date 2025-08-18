@@ -70,6 +70,7 @@ if invoice_file and template_file:
             if total > 0:
                 match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == interco].index
                 df_template.loc[match_rows, 'NET'] = total
+
         # --- HHI and THC Department Mapping using stripped Department code ---
         df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
         df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
@@ -90,21 +91,44 @@ if invoice_file and template_file:
         match_indices = cc_merged_df[cc_merged_df['Monthly Premium'].notna()].index
         df_template.loc[match_indices, 'NET'] = cc_merged_df.loc[match_indices, 'Monthly Premium']
 
-        # --- Final Output ---
+        # --- Final Output for Medius Template ---
         df_template['CC'] = df_template['CC'].replace('nan', '', regex=False)
 
-        output = io.BytesIO()
-        df_template.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
+        output_template = io.BytesIO()
+        df_template.to_excel(output_template, index=False, engine='openpyxl')
+        output_template.seek(0)
 
+        # --- Create Aflac Invoice and Support File ---
+        df_support = company_totals.rename(columns={'Company': 'Row Labels', 'Monthly Premium': 'Sum of Monthly Premium'})
+        df_support['Full Company Name'] = df_support['Row Labels'].map(
+            dict(zip(
+                df_code_map['Invoice Company Code'].astype(str).str.upper(),
+                df_code_map['Company Description'].astype(str).str.strip()
+            ))
+        )
+
+        output_support = io.BytesIO()
+        df_support.to_excel(output_support, index=False, engine='openpyxl')
+        output_support.seek(0)
+
+        # --- Streamlit Outputs ---
         st.success("Processing complete!")
+
         st.download_button(
             label="Download Updated Medius Template",
-            data=output,
+            data=output_template,
             file_name="Complete_Aflac_Medius_Template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        st.download_button(
+            label="Download Aflac Invoice and Support",
+            data=output_support,
+            file_name="Aflac_Invoice_and_Support.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
