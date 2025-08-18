@@ -27,17 +27,17 @@ if invoice_file and template_file:
 
         filtered_df = pd.DataFrame()
 
-   
+    filtered_df = pd.DataFrame()
+    
     if division_code:
         filtered_df = df_invoice[df_invoice['Division'].astype(str).str.strip() == division_code]
     elif company_code:
         filtered_df = df_invoice[df_invoice['Company'].astype(str).str.strip() == company_code]
-    else:
-        continue
 
-    total = filtered_df['Monthly Premium'].sum()
-    if total > 0:
-        description_totals[desc] = total
+    if not filtered_df.empty:
+        total = filtered_df['Monthly Premium'].sum()
+        if total > 0:
+            description_totals[desc] = total
 
     for desc, total in description_totals.items():
         match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
