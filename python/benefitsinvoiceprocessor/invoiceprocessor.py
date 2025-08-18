@@ -30,13 +30,15 @@ if invoice_file and template_file:
     df_template.loc[update_condition, 'NET'] = new_net_values[update_condition]
 
     # --- Description Source Mapping ---
-    description_totals = {}
-    for _, row in df_code_map.iterrows():
-        desc = row['Template Desc']
-        company_code = row['Invoice Company Code']
-        division_code = str(row.get('Division Code', ''))
+    df_code_map_filtered = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
 
-        if pd.notna(division_code):
+    description_totals = {}
+    for _, row in df_code_map_filtered.iterrows():
+        desc = str(row['Template Desc']).strip()
+        company_code = row['Invoice Company Code']
+        division_code = str(row.get('Division Code', '')).strip()
+
+        if division_code:
             filtered_df = df_invoice[
                 (df_invoice['Company'] == company_code) &
                 (df_invoice['Division'].astype(str) == division_code)
@@ -80,3 +82,4 @@ if invoice_file and template_file:
         file_name="Complete_Aflac_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
