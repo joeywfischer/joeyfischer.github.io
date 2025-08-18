@@ -10,31 +10,27 @@ template_file = st.file_uploader("Upload Medius Template Excel File", type=["xls
 if invoice_file and template_file:
     # Load invoice and template data
     df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
-    df_template = pd.read_excel(template_file, sheet_name=0, engine='openpyxl')  # First sheet is the template
+    df_template = pd.read_excel(template_file, sheet_name=0, engine='openpyxl')
 
     # Load mapping sheets
     df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
     df_hhi_thc_map = pd.read_excel(template_file, sheet_name='HHI and THC Code Map', engine='openpyxl')
 
-    # --- Description Source Mapping ---
-    df_code_map_filtered = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
+    # --- Mapping by Template Desc ---
+    df_code_map_desc = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
 
     description_totals = {}
-    for _, row in df_code_map_filtered.iterrows():
+    for _, row in df_code_map_desc.iterrows():
         desc = str(row['Template Desc']).strip()
         division_code = str(row.get('Division Code', '')).strip()
         company_code = str(row.get('Invoice Company Code', '')).strip()
 
-        if division_code:  # Use Division only
-            filtered_df = df_invoice[
-                df_invoice['Division'].astype(str).str.strip() == division_code
-            ].dropna(subset=['Monthly Premium'])
-        elif company_code:  # Use Company only
-            filtered_df = df_invoice[
-                df_invoice['Company'].astype(str).str.strip() == company_code
-            ].dropna(subset=['Monthly Premium'])
+        if division_code:
+            filtered_df = df_invoice[df_invoice['Division'].astype(str).str.strip() == division_code]
+        elif company_code:
+            filtered_df = df_invoice[df_invoice['Company'].astype(str).str.strip() == company_code]
         else:
-            continue  # Skip if neither division nor company code is available
+            continue
 
         total = filtered_df['Monthly Premium'].sum()
         if total > 0:
@@ -43,6 +39,18 @@ if invoice_file and template_file:
     for desc, total in description_totals.items():
         match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
         df_template.loc[match_rows, 'NET'] = total
+
+    # --- Mapping by Inter-Co (no Template Desc) ---
+    df_code_map_no_desc = df_code_map[df_code_map['Template Desc'].isna() | (df_code_map['Template Desc'].astype(str).str.strip() == '')]
+
+    company_totals = df_invoice[['Company', 'Monthly Premium']].dropna().groupby('Company')['Monthly Premium'].sum().reset_index()
+    interco_mapping = dict(zip(df_code_map_no_desc['Invoice Company Code'], df_code_map_no_desc['Template Inter-Co']))
+
+    for invoice_company, interco in interco_mapping.items():
+        total = company_totals[company_totals['Company'] == invoice_company]['Monthly Premium'].sum()
+        if total > 0:
+            match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == str(interco).strip()].index
+            df_template.loc[match_rows, 'NET'] = total
 
     # --- HHI and THC Department Mapping ---
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
@@ -72,3 +80,4 @@ if invoice_file and template_file:
         file_name="Complete_Aflac_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
