@@ -33,12 +33,13 @@ if invoice_file and template_file:
 
     # Normalize mapping sheet columns
     df_hhi_thc_map['Invoice Department Code'] = df_hhi_thc_map['Invoice Department Code'].astype(str).str.strip()
-    df_hhi_thc_map['Template CC'] = df_hhi_thc_map['Template CC'].astype(str).str.strip()
+    df_hhi_thc_map['Template CC'] = df_hhi_thc_map['Template CC'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+
+    # Normalize CC column in template
+    df_template['CC'] = df_template['CC'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
 
     # Map Department to Template CC via Invoice Department Code
     dept_to_cc_map = dict(zip(df_hhi_thc_map['Invoice Department Code'], df_hhi_thc_map['Template CC']))
-
-    df_template['CC'] = df_template['CC'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
 
     for _, row in dept_totals.iterrows():
         dept = row['Department']
