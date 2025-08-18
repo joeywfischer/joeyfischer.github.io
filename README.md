@@ -17,8 +17,8 @@
 ### University of Denver - Denver, Colorado  
 **Magna Cum Laude Bachelor of Science - Mathematics**  
 *Minor: Business Analytics/Statistics*  
-- **Major GPA**: 3.94 | **Cumulative GPA**: 3.93  
-- **Expected Graduation**: June 2025  
+- **GPA**: 3.91 
+- **Graduation**: June 2025  
 
 **Honors & Achievements:**  
 - Dean’s List  
