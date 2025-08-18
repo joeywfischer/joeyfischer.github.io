@@ -29,21 +29,26 @@ if invoice_file and template_file:
     update_condition = new_net_values.notna()
     df_template.loc[update_condition, 'NET'] = new_net_values[update_condition]
 
-    # --- Description Source Mapping (no Division Code) ---
-    df_code_map_filtered = df_code_map[
-        df_code_map['Template Desc'].notna() &
-        (df_code_map['Template Desc'].astype(str).str.strip() != '') &
-        (df_code_map['Division Code'].isna() | (df_code_map['Division Code'].astype(str).str.strip() == ''))
-    ]
+    # --- Description Source Mapping (with and without Division Code) ---
+    df_code_map_filtered = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
 
     description_totals = {}
     for _, row in df_code_map_filtered.iterrows():
         desc = str(row['Template Desc']).strip()
         company_code = str(row['Invoice Company Code']).strip()
+        division_code = str(row.get('Division Code', '')).strip()
 
-        filtered_df = df_invoice[df_invoice['Company'] == company_code].dropna(subset=['Monthly Premium'])
+        if division_code:  # Use both company and division
+            filtered_df = df_invoice[
+                (df_invoice['Company'] == company_code) &
+                (df_invoice['Division'].astype(str).str.strip() == division_code)
+            ].dropna(subset=['Monthly Premium'])
+        else:  # Use only company
+            filtered_df = df_invoice[
+                df_invoice['Company'] == company_code
+            ].dropna(subset=['Monthly Premium'])
+
         total = filtered_df['Monthly Premium'].sum()
-
         if total > 0:
             description_totals[desc] = total
 
@@ -79,4 +84,5 @@ if invoice_file and template_file:
         file_name="Complete_Aflac_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
