@@ -77,9 +77,16 @@ if invoice_file and template_file:
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
     df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
 
-    # Remove leading '10' from Department to match CC
-    df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].str.replace(r'^10', '', regex=True)
-    df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].str.replace(r'^11', '', regex=True)
+    # Strip leading '10' for HHI and '11' for THC from Department to match CC
+    def strip_prefix(dept, company):
+        dept = str(dept).strip()
+        if company == 'HHI' and dept.startswith('10'):
+            return dept[2:]
+        elif company == 'THC' and dept.startswith('11'):
+            return dept[2:]
+        return dept
+
+df_hhi_thc['CC_Code'] = df_hhi_thc.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
 
     # Sum Monthly Premium by CC_Code
     df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
