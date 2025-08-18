@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+import fitz  # PyMuPDF
 
 st.title("Aflac Invoice Processor")
 
@@ -8,85 +9,143 @@ invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"]
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 
 if invoice_file and template_file:
+    # Load invoice and template data
     df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
-    df_division = pd.read_excel(invoice_file, sheet_name='Division', engine='openpyxl')
-    df_template = pd.read_excel(template_file, engine='openpyxl')
+    df_template = pd.read_excel(template_file, sheet_name=0, engine='openpyxl')
+    df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
 
-    df_relevant = df_invoice[['Company', 'Monthly Premium']].dropna()
-    df_company_totals = df_relevant.groupby('Company')['Monthly Premium'].sum().reset_index()
+    # Normalize key columns
+    df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
+    df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
+    df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
-    company_code_mapping = {
-        'BARTL': 'BART', 'CECOC': 'CECO', 'CFACO': 'CFA', 'CMSHR': 'CMSHD',
-        'DVIES': 'DAVIE', 'HCGKC': 'HCG', 'INSIG': 'INVIS', 'BAPRD': 'MUMSR',
-        'NSSTI': 'NSTOK', 'STRAN': 'NSTRD', 'PBCRP': 'PB', 'PTLMI': 'PTL',
-        'SJHAM': 'SJH', 'SARUS': 'SRCLD', 'SHRED': 'STECH', 'VERSA': 'VMD'
-    }
+    # Mapping by Division Code
+    df_code_map_div = df_code_map[
+        df_code_map['Template Desc'].notna() &
+        (df_code_map['Template Desc'].astype(str).str.strip() != '') &
+        (df_code_map['Division Code'].astype(str).str.strip() != '')
+    ]
+    for _, row in df_code_map_div.iterrows():
+        desc = str(row['Template Desc']).strip()
+        division_code = str(row['Division Code']).strip()
+      import streamlit as st
+import pandas as pd
+import io
+import fitz  # PyMuPDF
 
-    df_template_for_merge = df_template[['Inter-Co', 'DESC', 'NET']].copy()
-    df_template_for_merge['Mapped_Invoice_Company'] = df_template_for_merge['Inter-Co'].replace(company_code_mapping)
+st.title("Aflac Invoice Processor")
 
-    merged_df = pd.merge(df_template_for_merge, df_company_totals, left_on='Mapped_Invoice_Company', right_on='Company', how='left')
-    new_net_values = merged_df.set_index(df_template.index)['Monthly Premium']
-    update_condition = new_net_values.notna() & (df_template['Inter-Co'] != 'CADES')
-    df_template.loc[update_condition, 'NET'] = new_net_values[update_condition]
+invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
+template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 
-    description_source_mapping = {
-        'Ancra Aircraft': {'type': 'division', 'company': 'ANCRA', 'code': '20AC'},
-        'Ancra Cargo': {'type': 'division', 'company': 'ANCRA', 'code': '20CG'},
-        'Ancra Group': {'type': 'division', 'company': 'ANCRA', 'code': '20AN'},
-        'CA Design Exeter': {'type': 'division', 'company': 'CADES', 'code': '3320'},
-        'CA Design Raleigh': {'type': 'division', 'company': 'CADES', 'code': '3350'},
-        'Corporate': {'type': 'division', 'company': 'DWIRE', 'code': '6000'},
-        'Kent': {'type': 'division', 'company': 'DWIRE', 'code': '6003'},
-        'Irwindale': {'type': 'division', 'company': 'DWIRE', 'code': '6004'},
-        'Neo Alabama': {'type': 'company', 'code': 'NEOAL'},
-        'Neo Indiana': {'type': 'company', 'code': 'NEOIN'},
-        'Neo Kentucky': {'type': 'company', 'code': 'NEOKY'},
-        'Neo Knoxville': {'type': 'company', 'code': 'NEOTN'},
-        'Neo Weirton': {'type': 'company', 'code': 'NEOWV'},
-        'Wakefield Thermal': {'type': 'company', 'code': 'WVNH'},
-        'Wakefield Midwest': {'type': 'company', 'code': 'WVWI'}
-    }
+if invoice_file and template_file:
+    # Load invoice and template data
+    df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
+    df_template = pd.read_excel(template_file, sheet_name=0, engine='openpyxl')
+    df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
 
-    description_totals = {}
-    for desc, info in description_source_mapping.items():
-        if info['type'] == 'division':
-            filtered_df = df_invoice[
-                (df_invoice['Company'] == info['company']) &
-                (df_invoice['Division'].astype(str) == str(info['code']))
-            ].dropna(subset=['Monthly Premium'])
-        else:
-            filtered_df = df_invoice[
-                df_invoice['Company'] == info['code']
-            ].dropna(subset=['Monthly Premium'])
-        description_totals[desc] = filtered_df['Monthly Premium'].sum()
+    # Normalize key columns
+    df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
+    df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
+    df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
-    for desc, total in description_totals.items():
-        rows_to_update = df_template[df_template['DESC'].str.contains(desc, case=False, na=False)].index
-        df_template.loc[rows_to_update, 'NET'] = total
+    # Mapping by Division Code
+    df_code_map_div = df_code_map[
+        df_code_map['Template Desc'].notna() &
+        (df_code_map['Template Desc'].astype(str).str.strip() != '') &
+        (df_code_map['Division Code'].astype(str).str.strip() != '')
+    ]
+    for _, row in df_code_map_div.iterrows():
+        desc = str(row['Template Desc']).strip()
+        division_code = str(row['Division Code']).strip()
+        total = df_invoice[df_invoice['Division'] == division_code]['Monthly Premium'].sum()
+        if total > 0:
+            match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
+            df_template.loc[match_rows, 'NET'] = total
 
+    # Mapping by Company Code
+    df_code_map_company = df_code_map[
+        df_code_map['Template Desc'].notna() &
+        (df_code_map['Template Desc'].astype(str).str.strip() != '') &
+        ((df_code_map['Division Code'].isna()) | (df_code_map['Division Code'].astype(str).str.strip() == ''))
+    ]
+    for _, row in df_code_map_company.iterrows():
+        desc = str(row['Template Desc']).strip()
+        invoice_company_code = str(row['Invoice Company Code']).strip().upper()
+        total = df_invoice[df_invoice['Company'] == invoice_company_code]['Monthly Premium'].sum()
+        if total > 0:
+            match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
+            df_template.loc[match_rows, 'NET'] = total
+
+    # Mapping by Inter-Co
+    df_code_map_no_desc = df_code_map[
+        df_code_map['Template Desc'].isna() |
+        (df_code_map['Template Desc'].astype(str).str.strip() == '')
+    ]
+    company_totals = df_invoice.groupby('Company')['Monthly Premium'].sum().reset_index()
+    interco_mapping = dict(zip(
+        df_code_map_no_desc['Invoice Company Code'].astype(str).str.upper(),
+        df_code_map_no_desc['Template Inter-Co'].astype(str).str.strip()
+    ))
+    for invoice_company, interco in interco_mapping.items():
+        total = company_totals[company_totals['Company'] == invoice_company]['Monthly Premium'].sum()
+        if total > 0:
+            match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == interco].index
+            df_template.loc[match_rows, 'NET'] = total
+
+    # HHI and THC Department Mapping
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
-    df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str)
-    df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].str[-4:]
+    df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
+
+    def strip_prefix(dept, company):
+        dept = str(dept).strip()
+        if company == 'HHI' and dept.startswith('10'):
+            return dept[2:]
+        elif company == 'THC' and dept.startswith('11'):
+            return dept[2:]
+        return dept
+
+    df_hhi_thc['CC_Code'] = df_hhi_thc.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
     df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
-
-    df_template['CC'] = df_template['CC'].astype(str).str.replace(r'\.0$', '', regex=True)
-    df_cc_totals['CC_Code'] = df_cc_totals['CC_Code'].astype(str)
-
+    df_template['CC'] = df_template['CC'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     cc_merged_df = pd.merge(df_template, df_cc_totals, left_on='CC', right_on='CC_Code', how='left')
     match_indices = cc_merged_df[cc_merged_df['Monthly Premium'].notna()].index
     df_template.loc[match_indices, 'NET'] = cc_merged_df.loc[match_indices, 'Monthly Premium']
-
     df_template['CC'] = df_template['CC'].replace('nan', '', regex=False)
 
-    output = io.BytesIO()
-    df_template.to_excel(output, index=False, engine='openpyxl')
-    output.seek(0)
+    # Create Excel with Summary and Pivot Table
+    df_summary = pd.read_excel(invoice_file, sheet_name='Summary', engine='openpyxl')
+    pivot_company = df_invoice.pivot_table(index='Company', values='Monthly Premium', aggfunc='sum').reset_index()
+    pivot_division = df_invoice.pivot_table(index='Division', values='Monthly Premium', aggfunc='sum').reset_index()
+    pivot_department = df_invoice.pivot_table(index='Department', values='Monthly Premium', aggfunc='sum').reset_index()
+
+    excel_output = io.BytesIO()
+    with pd.ExcelWriter(excel_output, engine='openpyxl') as writer:
+        df_summary.to_excel(writer, sheet_name='Invoice', index=False)
+        pivot_company.to_excel(writer, sheet_name='Pivot Table', index=False, startrow=0)
+        pivot_division.to_excel(writer, sheet_name='Pivot Table', index=False, startrow=len(pivot_company)+3)
+        pivot_department.to_excel(writer, sheet_name='Pivot Table', index=False, startrow=len(pivot_company)+len(pivot_division)+6)
+    excel_output.seek(0)
+
+    # Create PDF from Summary
+    pdf_output = io.BytesIO()
+    doc = fitz.open()
+    summary_text = df_summary.to_string(index=False)
+    page = doc.new_page()
+    text_rect = fitz.Rect(50, 50, 550, 800)
+    page.insert_textbox(text_rect, summary_text, fontsize=10, fontname="helv")
+    doc.save(pdf_output)
+    doc.close()
+    pdf_output.seek(0)
+
+    # Final Template Output
+    template_output = io.BytesIO()
+    df_template.to_excel(template_output, index=False, engine='openpyxl')
+    template_output.seek(0)
 
     st.success("Processing complete!")
-    st.download_button(
-        label="Download Updated Medius Template",
-        data=output,
-        file_name="Complete_Aflac_Medius_Template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+
+    st.download_button("Download Updated Medius Template", template_output, "Complete_Aflac_Medius_Template.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    st.download_button("Download Invoice Summary and Pivot Table", excel_output, "Aflac_Invoice_Summary_Pivot.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    st.download_button("Download Aflac Invoice PDF", pdf_output, "Aflac Invoice.pdf", "application/pdf")
+
