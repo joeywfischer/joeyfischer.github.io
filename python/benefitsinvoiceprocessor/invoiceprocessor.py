@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 import io
-from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl import load_workbook
+from openpyxl.writer.excel import save_virtual_workbook
 
 st.title("Aflac Invoice Processor")
 
@@ -69,10 +70,9 @@ if invoice_file and template_file:
                 worksheet.column_dimensions[get_column_letter(col[0].column)].width = max_length + 2
 
             # Format currency column
-            currency_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
             for row in range(2, worksheet.max_row + 1):
                 cell = worksheet.cell(row=row, column=2)
-                cell.number_format = currency_format
+                cell.number_format = '"$"#,##0.00'
 
             # Style Grand Total row
             grand_total_row_idx = worksheet.max_row
@@ -98,7 +98,6 @@ if invoice_file and template_file:
             file_name="Aflac_Invoice_and_Support.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
