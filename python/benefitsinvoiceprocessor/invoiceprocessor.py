@@ -68,6 +68,18 @@ if invoice_file and template_file:
                 max_length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in col)
                 worksheet.column_dimensions[get_column_letter(col[0].column)].width = max_length + 2
 
+            # Format currency column
+            currency_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
+            for row in range(2, worksheet.max_row + 1):
+                cell = worksheet.cell(row=row, column=2)
+                cell.number_format = currency_format
+
+            # Style Grand Total row
+            grand_total_row_idx = worksheet.max_row
+            grand_total_label_cell = worksheet.cell(row=grand_total_row_idx, column=1)
+            grand_total_label_cell.font = Font(bold=True)
+            grand_total_label_cell.fill = header_fill
+
         output_support.seek(0)
 
         # --- Streamlit Outputs ---
@@ -86,6 +98,7 @@ if invoice_file and template_file:
             file_name="Aflac_Invoice_and_Support.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
