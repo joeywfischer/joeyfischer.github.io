@@ -1,6 +1,6 @@
 import pandas as pd
 import io
-import fitz 
+import fitz  # PyMuPDF
 
 st.title("Aflac Invoice Processor")
 
