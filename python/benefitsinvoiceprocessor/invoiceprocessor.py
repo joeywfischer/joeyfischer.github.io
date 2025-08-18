@@ -29,32 +29,27 @@ if invoice_file and template_file:
     update_condition = new_net_values.notna()
     df_template.loc[update_condition, 'NET'] = new_net_values[update_condition]
 
-    # --- Description Source Mapping ---
-    df_code_map_filtered = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
+    # --- Description Source Mapping (no Division Code) ---
+    df_code_map_filtered = df_code_map[
+        df_code_map['Template Desc'].notna() &
+        (df_code_map['Template Desc'].astype(str).str.strip() != '') &
+        (df_code_map['Division Code'].isna() | (df_code_map['Division Code'].astype(str).str.strip() == ''))
+    ]
 
     description_totals = {}
     for _, row in df_code_map_filtered.iterrows():
         desc = str(row['Template Desc']).strip()
         company_code = str(row['Invoice Company Code']).strip()
-        division_code = str(row.get('Division Code', '')).strip()
 
-        if division_code:  # Use both company and division
-            filtered_df = df_invoice[
-                (df_invoice['Company'] == company_code) &
-                (df_invoice['Division'].astype(str) == division_code)
-            ].dropna(subset=['Monthly Premium'])
-        else:  # Use only company
-            filtered_df = df_invoice[
-                df_invoice['Company'] == company_code
-            ].dropna(subset=['Monthly Premium'])
-
+        filtered_df = df_invoice[df_invoice['Company'] == company_code].dropna(subset=['Monthly Premium'])
         total = filtered_df['Monthly Premium'].sum()
+
         if total > 0:
             description_totals[desc] = total
 
     for desc, total in description_totals.items():
-        rows_to_update = df_template[df_template['DESC'].str.strip().str.lower() == desc.lower()].index
-        df_template.loc[rows_to_update, 'NET'] = total
+        match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
+        df_template.loc[match_rows, 'NET'] = total
 
     # --- HHI and THC Department Mapping ---
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
