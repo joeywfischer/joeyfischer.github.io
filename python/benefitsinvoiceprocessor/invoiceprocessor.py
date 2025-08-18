@@ -31,10 +31,8 @@ if invoice_file and template_file:
     for _, row in df_code_map_div.iterrows():
         desc = str(row['Template Desc']).strip()
         division_code = str(row['Division Code']).strip()
-
         filtered_df = df_invoice[df_invoice['Division'] == division_code]
         total = filtered_df['Monthly Premium'].sum()
-
         if total > 0:
             match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
             df_template.loc[match_rows, 'NET'] = total
@@ -49,10 +47,8 @@ if invoice_file and template_file:
     for _, row in df_code_map_company.iterrows():
         desc = str(row['Template Desc']).strip()
         invoice_company_code = str(row['Invoice Company Code']).strip().upper()
-
         filtered_df = df_invoice[df_invoice['Company'] == invoice_company_code]
         total = filtered_df['Monthly Premium'].sum()
-
         if total > 0:
             match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
             df_template.loc[match_rows, 'NET'] = total
@@ -75,22 +71,27 @@ if invoice_file and template_file:
             match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == interco].index
             df_template.loc[match_rows, 'NET'] = total
 
-    # --- HHI and THC Department Mapping ---
+    # --- Corrected HHI and THC Department Mapping ---
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
-    df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str)
+    df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
 
-    dept_map = dict(zip(
-        df_hhi_thc_map['Invoice Department Code'].astype(str),
-        df_hhi_thc_map['Template CC'].astype(str)
-    ))
-    df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].map(dept_map)
+    # Group by Department and sum Monthly Premium
+    dept_totals = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
 
-    df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
-    df_template['CC'] = df_template['CC'].astype(str).str.replace(r'\.0$', '', regex=True)
+    # Map Department to Invoice Department Code and then to Template CC
+    df_hhi_thc_map['Invoice Department Code'] = df_hhi_thc_map['Invoice Department Code'].astype(str).str.strip()
+    df_hhi_thc_map['Template CC'] = df_hhi_thc_map['Template CC'].astype(str).str.strip()
+    dept_to_cc = dict(zip(df_hhi_thc_map['Invoice Department Code'], df_hhi_thc_map['Template CC']))
 
-    cc_merged_df = pd.merge(df_template, df_cc_totals, left_on='CC', right_on='CC_Code', how='left')
-    match_indices = cc_merged_df[cc_merged_df['Monthly Premium'].notna()].index
-    df_template.loc[match_indices, 'NET'] = cc_merged_df.loc[match_indices, 'Monthly Premium']
+    df_template['CC'] = df_template['CC'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+
+    for _, row in dept_totals.iterrows():
+        dept = row['Department']
+        total = row['Monthly Premium']
+        template_cc = dept_to_cc.get(dept)
+        if template_cc:
+            match_rows = df_template[df_template['CC'] == template_cc].index
+            df_template.loc[match_rows, 'NET'] = total
 
     # --- Final Output ---
     df_template['CC'] = df_template['CC'].replace('nan', '', regex=False)
