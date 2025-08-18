@@ -25,13 +25,14 @@ if invoice_file and template_file:
         division_code = str(row.get('Division Code', '')).strip()
         company_code = str(row.get('Invoice Company Code', '')).strip()
 
-        if division_code:
-            filtered_df = df_invoice[df_invoice['Division'].astype(str).str.strip() == division_code]
-        elif company_code:
-            filtered_df = df_invoice[df_invoice['Company'].astype(str).str.strip() == company_code]
-        else:
-            continue
+        filtered_df = pd.DataFrame()
 
+    if division_code:
+        filtered_df = df_invoice[df_invoice['Division'].astype(str).str.strip() == division_code]
+    elif company_code:
+        filtered_df = df_invoice[df_invoice['Company'].astype(str).str.strip() == company_code]
+
+    if not filtered_df.empty:
         total = filtered_df['Monthly Premium'].sum()
         if total > 0:
             description_totals[desc] = total
