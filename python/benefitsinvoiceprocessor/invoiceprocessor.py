@@ -41,7 +41,7 @@ if invoice_file and template_file:
 
         if total > 0:
             match_rows = df_template[df_template['DESC'].str.lower() == desc.lower()].index
-            df_template.loc[match_rows, 'NET'] = total
+            df_template.loc[match_rows, 'NET'] = total  # ✅ Only updating NET
 
     # --- Mapping by Template Desc with Invoice Company Code (no Division Code) ---
     df_code_map_company = df_code_map[
@@ -59,7 +59,7 @@ if invoice_file and template_file:
 
         if total > 0:
             match_rows = df_template[df_template['DESC'].str.lower() == desc.lower()].index
-            df_template.loc[match_rows, 'NET'] = total
+            df_template.loc[match_rows, 'NET'] = total  # ✅ Only updating NET
 
     # --- Mapping by Inter-Co (no Template Desc) ---
     df_code_map_no_desc = df_code_map[
@@ -77,7 +77,7 @@ if invoice_file and template_file:
         total = company_totals[company_totals['Company'] == invoice_company]['Monthly Premium'].sum()
         if total > 0:
             match_rows = df_template[df_template['Inter-Co'] == interco].index
-            df_template.loc[match_rows, 'NET'] = total
+            df_template.loc[match_rows, 'NET'] = total  # ✅ Only updating NET
 
     # --- HHI and THC Department Mapping ---
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
@@ -97,7 +97,7 @@ if invoice_file and template_file:
         total = row['Monthly Premium']
         if pd.notna(cc) and total > 0:
             match_rows = df_template[df_template['CC'] == cc].index
-            df_template.loc[match_rows, 'NET'] = total
+            df_template.loc[match_rows, 'NET'] = total  # ✅ Only updating NET
 
     # --- Final Output ---
     df_template['CC'] = df_template['CC'].replace('nan', '', regex=False)
