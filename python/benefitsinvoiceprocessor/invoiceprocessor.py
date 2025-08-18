@@ -14,7 +14,6 @@ if invoice_file and template_file:
 
     # Load mapping sheets
     df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
-    df_hhi_thc_map = pd.read_excel(template_file, sheet_name='HHI and THC Code Map', engine='openpyxl')
 
     # Normalize key columns
     df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
