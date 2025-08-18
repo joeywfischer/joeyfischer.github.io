@@ -3,8 +3,6 @@ import pandas as pd
 import io
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
-from openpyxl import load_workbook
-from openpyxl.writer.excel import save_virtual_workbook
 
 st.title("Aflac Invoice Processor")
 
