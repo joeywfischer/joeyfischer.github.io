@@ -85,5 +85,3 @@ if invoice_file and template_file:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-           
-
