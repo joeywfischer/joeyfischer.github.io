@@ -16,6 +16,11 @@ if invoice_file and template_file:
     df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
     df_hhi_thc_map = pd.read_excel(template_file, sheet_name='HHI and THC Code Map', engine='openpyxl')
 
+    # Normalize key columns
+    df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
+    df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
+    df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
+
     # --- Mapping by Template Desc ---
     df_code_map_desc = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
 
@@ -24,14 +29,14 @@ if invoice_file and template_file:
     for _, row in df_code_map_desc.iterrows():
         desc = str(row['Template Desc']).strip()
         division_code = str(row.get('Division Code', '')).strip()
-        company_code = str(row.get('Invoice Company Code', '')).strip()
+        company_code = str(row.get('Invoice Company Code', '')).strip().upper()
 
         filtered_df = pd.DataFrame()
 
         if division_code:
-            filtered_df = df_invoice[df_invoice['Division'].astype(str).str.strip() == division_code]
+            filtered_df = df_invoice[df_invoice['Division'] == division_code]
         elif company_code:
-            filtered_df = df_invoice[df_invoice['Company'].astype(str).str.strip() == company_code]
+            filtered_df = df_invoice[df_invoice['Company'] == company_code]
 
         if not filtered_df.empty:
             total = filtered_df['Monthly Premium'].sum()
@@ -46,12 +51,12 @@ if invoice_file and template_file:
     df_code_map_no_desc = df_code_map[df_code_map['Template Desc'].isna() | (df_code_map['Template Desc'].astype(str).str.strip() == '')]
 
     company_totals = df_invoice[['Company', 'Monthly Premium']].dropna().groupby('Company')['Monthly Premium'].sum().reset_index()
-    interco_mapping = dict(zip(df_code_map_no_desc['Invoice Company Code'], df_code_map_no_desc['Template Inter-Co']))
+    interco_mapping = dict(zip(df_code_map_no_desc['Invoice Company Code'].astype(str).str.upper(), df_code_map_no_desc['Template Inter-Co'].astype(str).str.strip()))
 
     for invoice_company, interco in interco_mapping.items():
         total = company_totals[company_totals['Company'] == invoice_company]['Monthly Premium'].sum()
         if total > 0:
-            match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == str(interco).strip()].index
+            match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == interco].index
             df_template.loc[match_rows, 'NET'] = total
 
     # --- HHI and THC Department Mapping ---
@@ -82,5 +87,3 @@ if invoice_file and template_file:
         file_name="Complete_Aflac_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-
