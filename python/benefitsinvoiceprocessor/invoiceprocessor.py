@@ -20,6 +20,7 @@ if invoice_file and template_file:
     df_code_map_desc = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
 
     description_totals = {}
+
     for _, row in df_code_map_desc.iterrows():
         desc = str(row['Template Desc']).strip()
         division_code = str(row.get('Division Code', '')).strip()
@@ -27,17 +28,15 @@ if invoice_file and template_file:
 
         filtered_df = pd.DataFrame()
 
-    filtered_df = pd.DataFrame()
-    
-    if division_code:
-        filtered_df = df_invoice[df_invoice['Division'].astype(str).str.strip() == division_code]
-    elif company_code:
-        filtered_df = df_invoice[df_invoice['Company'].astype(str).str.strip() == company_code]
+        if division_code:
+            filtered_df = df_invoice[df_invoice['Division'].astype(str).str.strip() == division_code]
+        elif company_code:
+            filtered_df = df_invoice[df_invoice['Company'].astype(str).str.strip() == company_code]
 
-    if not filtered_df.empty:
-        total = filtered_df['Monthly Premium'].sum()
-        if total > 0:
-            description_totals[desc] = total
+        if not filtered_df.empty:
+            total = filtered_df['Monthly Premium'].sum()
+            if total > 0:
+                description_totals[desc] = total
 
     for desc, total in description_totals.items():
         match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
@@ -83,4 +82,5 @@ if invoice_file and template_file:
         file_name="Complete_Aflac_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
