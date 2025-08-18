@@ -35,15 +35,15 @@ if invoice_file and template_file:
     description_totals = {}
     for _, row in df_code_map_filtered.iterrows():
         desc = str(row['Template Desc']).strip()
-        company_code = row['Invoice Company Code']
+        company_code = str(row['Invoice Company Code']).strip()
         division_code = str(row.get('Division Code', '')).strip()
 
-        if division_code:
+        if division_code:  # Use both company and division
             filtered_df = df_invoice[
                 (df_invoice['Company'] == company_code) &
                 (df_invoice['Division'].astype(str) == division_code)
             ].dropna(subset=['Monthly Premium'])
-        else:
+        else:  # Use only company
             filtered_df = df_invoice[
                 df_invoice['Company'] == company_code
             ].dropna(subset=['Monthly Premium'])
@@ -82,4 +82,5 @@ if invoice_file and template_file:
         file_name="Complete_Aflac_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
