@@ -19,7 +19,11 @@ if invoice_file and template_file:
     # Normalize key columns
     df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
     df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
+    df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
     df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
+    df_template['DESC'] = df_template['DESC'].astype(str).str.strip()
+    df_template['Inter-Co'] = df_template['Inter-Co'].astype(str).str.strip()
+    df_template['CC'] = df_template['CC'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
 
     # --- Mapping by Template Desc with Division Code ---
     df_code_map_div = df_code_map[
@@ -36,7 +40,7 @@ if invoice_file and template_file:
         total = filtered_df['Monthly Premium'].sum()
 
         if total > 0:
-            match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
+            match_rows = df_template[df_template['DESC'].str.lower() == desc.lower()].index
             df_template.loc[match_rows, 'NET'] = total
 
     # --- Mapping by Template Desc with Invoice Company Code (no Division Code) ---
@@ -54,7 +58,7 @@ if invoice_file and template_file:
         total = filtered_df['Monthly Premium'].sum()
 
         if total > 0:
-            match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
+            match_rows = df_template[df_template['DESC'].str.lower() == desc.lower()].index
             df_template.loc[match_rows, 'NET'] = total
 
     # --- Mapping by Inter-Co (no Template Desc) ---
@@ -72,13 +76,11 @@ if invoice_file and template_file:
     for invoice_company, interco in interco_mapping.items():
         total = company_totals[company_totals['Company'] == invoice_company]['Monthly Premium'].sum()
         if total > 0:
-            match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == interco].index
+            match_rows = df_template[df_template['Inter-Co'] == interco].index
             df_template.loc[match_rows, 'NET'] = total
 
-     # --- HHI and THC Department Mapping ---
+    # --- HHI and THC Department Mapping ---
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
-    df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
-    df_hhi_thc['Monthly Premium'] = pd.to_numeric(df_hhi_thc['Monthly Premium'], errors='coerce')
 
     # Step 1: Sum by Department
     dept_totals = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
@@ -90,8 +92,6 @@ if invoice_file and template_file:
     dept_totals = pd.merge(dept_totals, df_hhi_thc_map, left_on='Department', right_on='Invoice Department Code', how='left')
 
     # Step 3: Update Template by CC
-    df_template['CC'] = df_template['CC'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
-
     for _, row in dept_totals.iterrows():
         cc = row['Template CC']
         total = row['Monthly Premium']
@@ -113,3 +113,4 @@ if invoice_file and template_file:
         file_name="Complete_Aflac_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
