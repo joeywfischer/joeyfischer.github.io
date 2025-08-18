@@ -21,40 +21,53 @@ if invoice_file and template_file:
     df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
     df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
-    # --- Mapping by Template Desc ---
-    df_code_map_desc = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
+    # --- Mapping by Template Desc with Division Code ---
+    df_code_map_div = df_code_map[
+        df_code_map['Template Desc'].notna() &
+        (df_code_map['Template Desc'].astype(str).str.strip() != '') &
+        (df_code_map['Division Code'].astype(str).str.strip() != '')
+    ]
 
-    description_totals = {}
-
-    for _, row in df_code_map_desc.iterrows():
+    for _, row in df_code_map_div.iterrows():
         desc = str(row['Template Desc']).strip()
-        division_code = str(row.get('Division Code', '')).strip()
-        invoice_company_code = str(row.get('Invoice Company Code', '')).strip().upper()
+        division_code = str(row['Division Code']).strip()
 
-        filtered_df = pd.DataFrame()
+        filtered_df = df_invoice[df_invoice['Division'] == division_code]
+        total = filtered_df['Monthly Premium'].sum()
 
-        # Use Division Code if available
-        if division_code:
-            filtered_df = df_invoice[df_invoice['Division'] == division_code]
-        # Otherwise use Invoice Company Code
-        elif invoice_company_code:
-            filtered_df = df_invoice[df_invoice['Company'] == invoice_company_code]
+        if total > 0:
+            match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
+            df_template.loc[match_rows, 'NET'] = total
 
-        if not filtered_df.empty:
-            total = filtered_df['Monthly Premium'].sum()
-            if total > 0:
-                description_totals[desc] = total
+    # --- Mapping by Template Desc with Invoice Company Code (no Division Code) ---
+    df_code_map_company = df_code_map[
+        df_code_map['Template Desc'].notna() &
+        (df_code_map['Template Desc'].astype(str).str.strip() != '') &
+        ((df_code_map['Division Code'].isna()) | (df_code_map['Division Code'].astype(str).str.strip() == ''))
+    ]
 
-    # Apply totals to template
-    for desc, total in description_totals.items():
-        match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
-        df_template.loc[match_rows, 'NET'] = total
+    for _, row in df_code_map_company.iterrows():
+        desc = str(row['Template Desc']).strip()
+        invoice_company_code = str(row['Invoice Company Code']).strip().upper()
+
+        filtered_df = df_invoice[df_invoice['Company'] == invoice_company_code]
+        total = filtered_df['Monthly Premium'].sum()
+
+        if total > 0:
+            match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
+            df_template.loc[match_rows, 'NET'] = total
 
     # --- Mapping by Inter-Co (no Template Desc) ---
-    df_code_map_no_desc = df_code_map[df_code_map['Template Desc'].isna() | (df_code_map['Template Desc'].astype(str).str.strip() == '')]
+    df_code_map_no_desc = df_code_map[
+        df_code_map['Template Desc'].isna() |
+        (df_code_map['Template Desc'].astype(str).str.strip() == '')
+    ]
 
     company_totals = df_invoice[['Company', 'Monthly Premium']].dropna().groupby('Company')['Monthly Premium'].sum().reset_index()
-    interco_mapping = dict(zip(df_code_map_no_desc['Invoice Company Code'].astype(str).str.upper(), df_code_map_no_desc['Template Inter-Co'].astype(str).str.strip()))
+    interco_mapping = dict(zip(
+        df_code_map_no_desc['Invoice Company Code'].astype(str).str.upper(),
+        df_code_map_no_desc['Template Inter-Co'].astype(str).str.strip()
+    ))
 
     for invoice_company, interco in interco_mapping.items():
         total = company_totals[company_totals['Company'] == invoice_company]['Monthly Premium'].sum()
@@ -66,7 +79,10 @@ if invoice_file and template_file:
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
     df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str)
 
-    dept_map = dict(zip(df_hhi_thc_map['Invoice Department Code'].astype(str), df_hhi_thc_map['Template CC'].astype(str)))
+    dept_map = dict(zip(
+        df_hhi_thc_map['Invoice Department Code'].astype(str),
+        df_hhi_thc_map['Template CC'].astype(str)
+    ))
     df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].map(dept_map)
 
     df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
