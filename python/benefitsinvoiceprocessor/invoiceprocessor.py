@@ -75,22 +75,29 @@ if invoice_file and template_file:
             match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == interco].index
             df_template.loc[match_rows, 'NET'] = total
 
-    # --- HHI and THC Department Mapping ---
+     # --- HHI and THC Department Mapping ---
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
-    df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str)
+    df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
+    df_hhi_thc['Monthly Premium'] = pd.to_numeric(df_hhi_thc['Monthly Premium'], errors='coerce')
 
-    dept_map = dict(zip(
-        df_hhi_thc_map['Invoice Department Code'].astype(str),
-        df_hhi_thc_map['Template CC'].astype(str)
-    ))
-    df_hhi_thc['CC_Code'] = df_hhi_thc['Department'].map(dept_map)
+    # Step 1: Sum by Department
+    dept_totals = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
 
-    df_cc_totals = df_hhi_thc.groupby('CC_Code')['Monthly Premium'].sum().reset_index()
-    df_template['CC'] = df_template['CC'].astype(str).str.replace(r'\.0$', '', regex=True)
+    # Step 2: Map Department to Template CC
+    df_hhi_thc_map['Invoice Department Code'] = df_hhi_thc_map['Invoice Department Code'].astype(str).str.strip()
+    df_hhi_thc_map['Template CC'] = df_hhi_thc_map['Template CC'].astype(str).str.strip()
 
-    cc_merged_df = pd.merge(df_template, df_cc_totals, left_on='CC', right_on='CC_Code', how='left')
-    match_indices = cc_merged_df[cc_merged_df['Monthly Premium'].notna()].index
-    df_template.loc[match_indices, 'NET'] = cc_merged_df.loc[match_indices, 'Monthly Premium']
+    dept_totals = pd.merge(dept_totals, df_hhi_thc_map, left_on='Department', right_on='Invoice Department Code', how='left')
+
+    # Step 3: Update Template by CC
+    df_template['CC'] = df_template['CC'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
+
+    for _, row in dept_totals.iterrows():
+        cc = row['Template CC']
+        total = row['Monthly Premium']
+        if pd.notna(cc) and total > 0:
+            match_rows = df_template[df_template['CC'] == cc].index
+            df_template.loc[match_rows, 'NET'] = total
 
     # --- Final Output ---
     df_template['CC'] = df_template['CC'].replace('nan', '', regex=False)
