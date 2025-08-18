@@ -56,7 +56,6 @@ if invoice_file and template_file:
         if total > 0:
             match_rows = df_template[df_template['DESC'].astype(str).str.strip().str.lower() == desc.lower()].index
             df_template.loc[match_rows, 'NET'] = total
-
     # --- Mapping by Inter-Co (no Template Desc) ---
     df_code_map_no_desc = df_code_map[
         df_code_map['Template Desc'].isna() |
@@ -74,7 +73,6 @@ if invoice_file and template_file:
         if total > 0:
             match_rows = df_template[df_template['Inter-Co'].astype(str).str.strip() == interco].index
             df_template.loc[match_rows, 'NET'] = total
-
     # --- HHI and THC Department Mapping using stripped Department code ---
     df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
     df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
