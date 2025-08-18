@@ -23,13 +23,6 @@ if invoice_file and template_file:
 
         # [Mapping logic remains unchanged — omitted for brevity]
 
-        # --- Final Output for Medius Template ---
-        df_template['CC'] = df_template['CC'].replace('nan', '', regex=False)
-
-        output_template = io.BytesIO()
-        df_template.to_excel(output_template, index=False, engine='openpyxl')
-        output_template.seek(0)
-
         # --- Create Aflac Invoice and Support File ---
         company_totals = df_invoice[['Company', 'Monthly Premium']].dropna().groupby('Company')['Monthly Premium'].sum().reset_index()
         df_support = company_totals.rename(columns={'Company': 'Row Labels', 'Monthly Premium': 'Sum of Monthly Premium'})
@@ -40,55 +33,62 @@ if invoice_file and template_file:
             ))
         )
 
-        # Drop rows with missing values
         df_support = df_support.dropna()
-
-        # Add Grand Total row
         grand_total = df_support['Sum of Monthly Premium'].sum()
         df_support.loc[len(df_support.index)] = ['Grand Total', grand_total, '']
 
-        # Save with formatting
+        # --- Additional Break-Down by Division ---
+        valid_divisions = df_code_map['Division Code'].dropna().astype(str).str.strip().unique()
+        df_division_filtered = df_invoice[df_invoice['Division'].isin(valid_divisions)]
+        df_division_summary = df_division_filtered.groupby('Division')['Monthly Premium'].sum().reset_index()
+        df_division_summary = df_division_summary.rename(columns={'Division': 'Division Code', 'Monthly Premium': 'Sum of Monthly Premium'})
+        df_division_summary['Division Description'] = df_division_summary['Division Code'].map(
+            dict(zip(
+                df_code_map['Division Code'].astype(str).str.strip(),
+                df_code_map['Division Description'].astype(str).str.strip()
+            ))
+        )
+        df_division_summary = df_division_summary[['Division Description', 'Sum of Monthly Premium']]
+        division_total = df_division_summary['Sum of Monthly Premium'].sum()
+        df_division_summary.loc[len(df_division_summary.index)] = ['Grand Total', division_total]
+
+        # --- Save with formatting ---
         output_support = io.BytesIO()
         with pd.ExcelWriter(output_support, engine='openpyxl') as writer:
             df_support.to_excel(writer, index=False, sheet_name='Invoice Support')
-            workbook = writer.book
-            worksheet = writer.sheets['Invoice Support']
+            df_division_summary.to_excel(writer, index=False, sheet_name='Additional Break-Down')
 
-            # Format header row
-            header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
-            header_font = Font(bold=True)
-            for col_num, col_name in enumerate(df_support.columns, 1):
-                cell = worksheet.cell(row=1, column=col_num)
-                cell.fill = header_fill
-                cell.font = header_font
+            for sheet_name in ['Invoice Support', 'Additional Break-Down']:
+                worksheet = writer.sheets[sheet_name]
+                header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
+                header_font = Font(bold=True)
 
-            # Adjust column widths
-            for col in worksheet.columns:
-                max_length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in col)
-                worksheet.column_dimensions[get_column_letter(col[0].column)].width = max_length + 2
+                # Format header
+                for col_num in range(1, worksheet.max_column + 1):
+                    cell = worksheet.cell(row=1, column=col_num)
+                    cell.fill = header_fill
+                    cell.font = header_font
 
-            # Format currency column
-            for row in range(2, worksheet.max_row + 1):
-                cell = worksheet.cell(row=row, column=2)
-                cell.number_format = '"$"#,##0.00'
+                # Adjust column widths
+                for col in worksheet.columns:
+                    max_length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in col)
+                    worksheet.column_dimensions[get_column_letter(col[0].column)].width = max_length + 2
 
-            # Style Grand Total row
-            grand_total_row_idx = worksheet.max_row
-            grand_total_label_cell = worksheet.cell(row=grand_total_row_idx, column=1)
-            grand_total_label_cell.font = Font(bold=True)
-            grand_total_label_cell.fill = header_fill
+                # Format currency column (column 2)
+                for row in range(2, worksheet.max_row + 1):
+                    cell = worksheet.cell(row=row, column=2)
+                    cell.number_format = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
+
+                # Style Grand Total row
+                total_row = worksheet.max_row
+                total_label_cell = worksheet.cell(row=total_row, column=1)
+                total_label_cell.font = Font(bold=True)
+                total_label_cell.fill = header_fill
 
         output_support.seek(0)
 
         # --- Streamlit Outputs ---
         st.success("Processing complete!")
-
-        st.download_button(
-            label="Download Updated Medius Template",
-            data=output_template,
-            file_name="Complete_Aflac_Medius_Template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
 
         st.download_button(
             label="Download Aflac Invoice and Support",
