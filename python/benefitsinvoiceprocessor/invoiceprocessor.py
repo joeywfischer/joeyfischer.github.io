@@ -18,27 +18,19 @@ if invoice_file and template_file:
 
     # Normalize key columns
     df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
-    df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
     df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
-    # --- Mapping by Template Desc ---
+    # --- Mapping by Template Desc using Invoice Company Code ---
     df_code_map_desc = df_code_map[df_code_map['Template Desc'].notna() & (df_code_map['Template Desc'].astype(str).str.strip() != '')]
 
     description_totals = {}
 
     for _, row in df_code_map_desc.iterrows():
         desc = str(row['Template Desc']).strip()
-        division_code = str(row.get('Division Code', '')).strip()
-        company_code = str(row.get('Invoice Company Code', '')).strip().upper()
+        invoice_company_code = str(row.get('Invoice Company Code', '')).strip().upper()
 
-        filtered_df = pd.DataFrame()
-
-        if division_code:
-            filtered_df = df_invoice[df_invoice['Division'] == division_code]
-        elif company_code:
-            filtered_df = df_invoice[df_invoice['Company'] == company_code]
-
-        if not filtered_df.empty:
+        if invoice_company_code:
+            filtered_df = df_invoice[df_invoice['Company'] == invoice_company_code]
             total = filtered_df['Monthly Premium'].sum()
             if total > 0:
                 description_totals[desc] = total
@@ -87,3 +79,4 @@ if invoice_file and template_file:
         file_name="Complete_Aflac_Medius_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
