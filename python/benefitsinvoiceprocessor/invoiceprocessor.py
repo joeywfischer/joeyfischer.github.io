@@ -53,7 +53,7 @@ if invoice_file and template_file:
             description_totals[desc] = total
 
     for desc, total in description_totals.items():
-        rows_to_update = df_template[df_template['DESC'].str.contains(desc, case=False, na=False)].index
+        rows_to_update = df_template[df_template['DESC'].str.strip().str.lower() == desc.lower()].index
         df_template.loc[rows_to_update, 'NET'] = total
 
     # --- HHI and THC Department Mapping ---
