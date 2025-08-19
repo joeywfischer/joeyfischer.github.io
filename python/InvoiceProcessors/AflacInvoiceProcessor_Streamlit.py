@@ -112,7 +112,14 @@ if invoice_file and template_file:
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
         bold_font = Font(bold=True)
-        currency_style = NamedStyle(name="currency_style", number_format='"$"#,##0.00')
+        accounting_style = NamedStyle(name="accounting_style", number_format='_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)')
+
+        # Helper to auto-adjust column widths
+        def adjust_column_widths(ws, start_col, df):
+            for i, col in enumerate(df.columns, start=start_col):
+                max_length = max([len(str(cell)) for cell in [col] + df[col].astype(str).tolist()])
+                col_letter = ws.cell(row=1, column=i).column_letter
+                ws.column_dimensions[col_letter].width = max_length + 2
 
         # Table 1 at A1
         for r_idx, r in enumerate(dataframe_to_rows(df1, index=False, header=True), start=1):
@@ -122,9 +129,10 @@ if invoice_file and template_file:
                     cell.font = header_font
                     cell.fill = header_fill
                 elif c_idx == 2 and r_idx > 1:
-                    cell.style = currency_style
-                if r_idx == len(df1) + 1 and df1.iloc[-1]['Row Labels'] == 'Grand Total':
+                    cell.style = accounting_style
+                if r_idx == len(df1) and df1.iloc[-1]['Row Labels'] == 'Grand Total':
                     cell.font = bold_font
+        adjust_column_widths(ws, 1, df1)
 
         # Table 2 at E1
         for r_idx, r in enumerate(dataframe_to_rows(df2, index=False, header=True), start=1):
@@ -134,9 +142,10 @@ if invoice_file and template_file:
                     cell.font = header_font
                     cell.fill = header_fill
                 elif c_idx == 6 and r_idx > 1:
-                    cell.style = currency_style
+                    cell.style = accounting_style
                 if c_idx == 5 and r_idx > 1 and not str(val).startswith("  "):
                     cell.font = bold_font
+        adjust_column_widths(ws, 5, df2)
 
         # Table 3 at H1
         for r_idx, r in enumerate(dataframe_to_rows(df3, index=False, header=True), start=1):
@@ -146,9 +155,10 @@ if invoice_file and template_file:
                     cell.font = header_font
                     cell.fill = header_fill
                 elif c_idx == 9 and r_idx > 1:
-                    cell.style = currency_style
+                    cell.style = accounting_style
                 if c_idx == 8 and r_idx > 1 and str(val).strip() == 'THC & HHI':
                     cell.font = bold_font
+        adjust_column_widths(ws, 8, df3)
 
         wb.save(output)
         return output.getvalue()
@@ -160,3 +170,4 @@ if invoice_file and template_file:
         file_name="Aflac_Invoice_and_Support.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
