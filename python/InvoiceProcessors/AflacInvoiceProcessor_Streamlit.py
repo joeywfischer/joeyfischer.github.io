@@ -15,8 +15,15 @@ if invoice_file and template_file:
     template_xls = pd.ExcelFile(template_file, engine='openpyxl')
     code_map_df = pd.read_excel(template_xls, sheet_name='Code Map', engine='openpyxl')
 
+    # Filter Code Map for non-empty Division Description
+    code_map_filtered = code_map_df[code_map_df['Division Description'].notna()]
+
+    # Filter Detail sheet to include only Companies with Division Description in Code Map
+    valid_companies = code_map_filtered['Invoice Company Code'].unique()
+    filtered_detail_df = detail_df[detail_df['Company'].isin(valid_companies)]
+
     # Table 1: Summary by Company
-    premium_summary = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
+    premium_summary = filtered_detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
     premium_summary.columns = ['Row Labels', 'Sum of Monthly Premium']
 
     result_df = premium_summary.merge(
@@ -29,11 +36,11 @@ if invoice_file and template_file:
 
     # Table 2: Hierarchical breakdown by Company and Division
     breakdown_rows = []
-    company_totals = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
+    company_totals = filtered_detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
 
     for company, comp_premium in company_totals.values:
         breakdown_rows.append({'Label': company, 'Monthly Premium': comp_premium})
-        divisions = detail_df[detail_df['Company'] == company].groupby('Division')['Monthly Premium'].sum().reset_index()
+        divisions = filtered_detail_df[filtered_detail_df['Company'] == company].groupby('Division')['Monthly Premium'].sum().reset_index()
         for div, div_premium in divisions.values:
             if pd.notna(div):
                 breakdown_rows.append({'Label': f"  {div}", 'Monthly Premium': div_premium})
@@ -77,3 +84,4 @@ if invoice_file and template_file:
         file_name="Aflac_Invoice_and_Support.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
