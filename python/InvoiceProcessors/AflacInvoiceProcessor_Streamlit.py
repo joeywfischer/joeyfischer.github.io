@@ -42,4 +42,7 @@ if invoice_file and template_file:
     st.download_button(
         label="Download Aflac Invoice and Support Excel",
         data=excel_data,
-        file_name="Aflac_Invoice
+        file_name="Aflac_Invoice_and_Support.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
