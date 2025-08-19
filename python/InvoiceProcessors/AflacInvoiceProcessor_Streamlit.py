@@ -15,7 +15,7 @@ if invoice_file and template_file:
     template_xls = pd.ExcelFile(template_file, engine='openpyxl')
     code_map_df = pd.read_excel(template_xls, sheet_name='Code Map', engine='openpyxl')
 
-    # Table 1: Summary by Company (no filter)
+    # Table 1: Summary by Company (remove duplicates based on Invoice Company Code)
     premium_summary = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
     premium_summary.columns = ['Row Labels', 'Sum of Monthly Premium']
 
@@ -25,7 +25,7 @@ if invoice_file and template_file:
     )
 
     result_df.rename(columns={'Company Description': 'Full Company Name'}, inplace=True)
-    final_df = result_df[['Row Labels', 'Sum of Monthly Premium', 'Full Company Name']]
+    final_df = result_df[['Row Labels', 'Sum of Monthly Premium', 'Full Company Name']].drop_duplicates(subset=['Row Labels'])
 
     # Table 2: Hierarchical breakdown by Company and Division (filtered)
     code_map_filtered = code_map_df[code_map_df['Division Description'].notna()]
@@ -45,7 +45,7 @@ if invoice_file and template_file:
     breakdown_df = pd.DataFrame(breakdown_rows)
 
     # Display tables in Streamlit
-    st.subheader("Summary Table")
+    st.subheader("Summary Table (Unique Companies)")
     st.dataframe(final_df)
 
     st.subheader("Company & Division Breakdown (Filtered)")
