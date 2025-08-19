@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.title("Aflac Invoice and Support Generator with Debugging")
+st.title("Aflac Invoice and Support Generator")
 
 # Upload both files
 invoice_file = st.file_uploader("Upload Invoice Excel File", type=["xlsx"], key="invoice")
@@ -32,6 +32,15 @@ if invoice_file and template_file:
     result_df.rename(columns={'Company Description': 'Full Company Name'}, inplace=True)
     final_df = result_df[['Row Labels', 'Sum of Monthly Premium', 'Full Company Name']]
 
+    # Add Grand Total row
+    grand_total = final_df['Sum of Monthly Premium'].sum()
+    total_row = pd.DataFrame([{
+        'Row Labels': 'Grand Total',
+        'Sum of Monthly Premium': grand_total,
+        'Full Company Name': ''
+    }])
+    final_df = pd.concat([final_df, total_row], ignore_index=True)
+
     # Table 2: Hierarchical breakdown using Division Descriptions
     code_map_filtered = code_map_df[code_map_df['Division Description'].notna()]
     valid_companies = code_map_filtered['Invoice Company Code'].unique()
@@ -43,8 +52,8 @@ if invoice_file and template_file:
         breakdown_rows.append({'Label': company, 'Monthly Premium': comp_premium})
         company_divisions = filtered_detail_df[filtered_detail_df['Company'] == company]
         company_divisions = company_divisions.merge(
-            code_map_df[['Invoice Company Code', 'Division Description']],
-            left_on='Company', right_on='Invoice Company Code', how='left'
+            code_map_df[['Division Code', 'Division Description']],
+            left_on='Division', right_on='Division Code', how='left'
         )
         division_totals = company_divisions.groupby('Division Description')['Monthly Premium'].sum().reset_index()
         for div_desc, div_premium in division_totals.values:
@@ -57,20 +66,10 @@ if invoice_file and template_file:
     total_thchhi = thchhi_df['Monthly Premium'].sum()
 
     department_summary = thchhi_df.groupby('Department')['Monthly Premium'].sum().reset_index()
-
-    # Debug Table 1: Raw Department codes
-    st.subheader("Debug Table 1: Raw Department Codes from THC & HHI")
-    st.dataframe(department_summary)
-
-    # Strip first two characters and ensure string format
     department_summary['Stripped Code'] = department_summary['Department'].apply(
         lambda x: str(x)[2:] if pd.notna(x) and isinstance(x, (str, int, float)) and len(str(x)) >= 2 else str(x)
     )
 
-    st.subheader("Debug Table 2: Stripped Department Codes")
-    st.dataframe(department_summary[['Department', 'Stripped Code', 'Monthly Premium']])
-
-    # Map stripped codes to DESC values
     cc_desc_map = template_df[['CC', 'DESC']].dropna()
     cc_desc_map['CC'] = cc_desc_map['CC'].apply(lambda x: str(int(x)) if isinstance(x, float) else str(x))
     cc_desc_dict = dict(zip(cc_desc_map['CC'], cc_desc_map['DESC']))
@@ -79,10 +78,6 @@ if invoice_file and template_file:
         lambda x: cc_desc_dict.get(x, x)
     )
 
-    st.subheader("Debug Table 3: Mapped DESC Values")
-    st.dataframe(department_summary[['Stripped Code', 'Mapped DESC', 'Monthly Premium']])
-
-    # Final third table
     department_rows = [{'Department': 'THC & HHI', 'Sum of Monthly Premium': total_thchhi}]
     for _, row in department_summary.iterrows():
         department_rows.append({
@@ -90,6 +85,13 @@ if invoice_file and template_file:
             'Sum of Monthly Premium': row['Monthly Premium']
         })
     department_df = pd.DataFrame(department_rows)
+
+    # Display final tables
+    st.subheader("Summary Table")
+    st.dataframe(final_df)
+
+    st.subheader("Company & Division Breakdown (Filtered)")
+    st.dataframe(breakdown_df)
 
     st.subheader("THC & HHI Department Breakdown")
     st.dataframe(department_df)
