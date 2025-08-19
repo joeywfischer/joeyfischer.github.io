@@ -40,10 +40,24 @@ if invoice_file and template_file:
     )
     division_summary.columns = ['Invoice Company Code', 'Division', 'Sum of Monthly Premium']
 
+    # Third table: Additional Break-Down by Division Code
+    if 'Division Code' in code_map_df.columns:
+        breakdown_df = detail_df.merge(
+            code_map_df[['Invoice Company Code', 'Division Description', 'Division Code']],
+            left_on='Company', right_on='Invoice Company Code', how='left'
+        )
+
+        breakdown_df = breakdown_df[breakdown_df['Division Description'].notna() & breakdown_df['Division Code'].notna()]
+        breakdown_summary = breakdown_df.groupby(['Division Description', 'Division Code'])['Monthly Premium'].sum().reset_index()
+        breakdown_summary.columns = ['Division Description', 'Division', 'Cost']
+    else:
+        breakdown_summary = pd.DataFrame(columns=['Division Description', 'Division', 'Cost'])
+
     st.dataframe(final_df)
     st.dataframe(division_summary)
+    st.dataframe(breakdown_summary)
 
-    def convert_df_to_excel(df1, df2):
+    def convert_df_to_excel(df1, df2, df3):
         from io import BytesIO
         from openpyxl import Workbook
         from openpyxl.utils.dataframe import dataframe_to_rows
@@ -62,10 +76,17 @@ if invoice_file and template_file:
             for j, val in enumerate(r, start=5):  # Column E is index 5
                 ws.cell(row=i, column=j, value=val)
 
+        # Write third table below the existing tables
+        start_row = max(len(df1), len(df2)) + 3
+        ws.cell(row=start_row, column=1, value='Additional Break-Down')
+        for i, r in enumerate(dataframe_to_rows(df3, index=False, header=True), start=start_row + 1):
+            for j, val in enumerate(r, start=1):
+                ws.cell(row=i, column=j, value=val)
+
         wb.save(output)
         return output.getvalue()
 
-    excel_data = convert_df_to_excel(final_df, division_summary)
+    excel_data = convert_df_to_excel(final_df, division_summary, breakdown_summary)
     st.download_button(
         label="Download Aflac Invoice and Support Excel",
         data=excel_data,
