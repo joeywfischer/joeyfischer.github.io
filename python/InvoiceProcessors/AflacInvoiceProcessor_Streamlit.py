@@ -15,15 +15,8 @@ if invoice_file and template_file:
     template_xls = pd.ExcelFile(template_file, engine='openpyxl')
     code_map_df = pd.read_excel(template_xls, sheet_name='Code Map', engine='openpyxl')
 
-    # Filter Code Map for non-empty Division Description
-    code_map_filtered = code_map_df[code_map_df['Division Description'].notna()]
-
-    # Filter Detail sheet to include only Companies with Division Description in Code Map
-    valid_companies = code_map_filtered['Invoice Company Code'].unique()
-    filtered_detail_df = detail_df[detail_df['Company'].isin(valid_companies)]
-
-    # Table 1: Summary by Company
-    premium_summary = filtered_detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
+    # Table 1: Summary by Company (no filter)
+    premium_summary = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
     premium_summary.columns = ['Row Labels', 'Sum of Monthly Premium']
 
     result_df = premium_summary.merge(
@@ -34,21 +27,20 @@ if invoice_file and template_file:
     result_df.rename(columns={'Company Description': 'Full Company Name'}, inplace=True)
     final_df = result_df[['Row Labels', 'Sum of Monthly Premium', 'Full Company Name']]
 
-    # Table 2: Hierarchical breakdown by Company and Division Description
+    # Table 2: Hierarchical breakdown by Company and Division (filtered)
+    code_map_filtered = code_map_df[code_map_df['Division Description'].notna()]
+    valid_companies = code_map_filtered['Invoice Company Code'].unique()
+    filtered_detail_df = detail_df[detail_df['Company'].isin(valid_companies)]
+
     breakdown_rows = []
     company_totals = filtered_detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
 
     for company, comp_premium in company_totals.values:
         breakdown_rows.append({'Label': company, 'Monthly Premium': comp_premium})
-        company_divisions = filtered_detail_df[filtered_detail_df['Company'] == company]
-        company_divisions = company_divisions.merge(
-            code_map_df[['Invoice Company Code', 'Division Description']],
-            left_on='Company', right_on='Invoice Company Code', how='left'
-        )
-        division_totals = company_divisions.groupby('Division Description')['Monthly Premium'].sum().reset_index()
-        for div_desc, div_premium in division_totals.values:
-            if pd.notna(div_desc):
-                breakdown_rows.append({'Label': f"  {div_desc}", 'Monthly Premium': div_premium})
+        divisions = filtered_detail_df[filtered_detail_df['Company'] == company].groupby('Division')['Monthly Premium'].sum().reset_index()
+        for div, div_premium in divisions.values:
+            if pd.notna(div):
+                breakdown_rows.append({'Label': f"  {div}", 'Monthly Premium': div_premium})
 
     breakdown_df = pd.DataFrame(breakdown_rows)
 
@@ -56,7 +48,7 @@ if invoice_file and template_file:
     st.subheader("Summary Table")
     st.dataframe(final_df)
 
-    st.subheader("Company & Division Breakdown")
+    st.subheader("Company & Division Breakdown (Filtered)")
     st.dataframe(breakdown_df)
 
     # Export to Excel
@@ -89,4 +81,5 @@ if invoice_file and template_file:
         file_name="Aflac_Invoice_and_Support.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
