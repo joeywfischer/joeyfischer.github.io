@@ -106,3 +106,5 @@ if invoice_file and template_file:
         )
 
     except Exception as e:
+          st.error(f"An error occurred: {e}")
+    
