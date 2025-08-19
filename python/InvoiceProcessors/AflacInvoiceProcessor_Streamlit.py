@@ -20,7 +20,7 @@ if invoice_file and template_file:
     # Load Code Map sheet
     code_map_df = pd.read_excel(template_xls, sheet_name='Code Map', engine='openpyxl')
 
-    # Table 1: Summary by Company (grouped properly to avoid duplicates)
+    # Table 1: Summary by Company
     premium_summary = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
     premium_summary.columns = ['Row Labels', 'Sum of Monthly Premium']
 
@@ -32,7 +32,7 @@ if invoice_file and template_file:
     result_df.rename(columns={'Company Description': 'Full Company Name'}, inplace=True)
     final_df = result_df[['Row Labels', 'Sum of Monthly Premium', 'Full Company Name']]
 
-    # Table 2: Hierarchical breakdown by Company and Division Description
+    # Table 2: Hierarchical breakdown using Division Descriptions
     code_map_filtered = code_map_df[code_map_df['Division Description'].notna()]
     valid_companies = code_map_filtered['Invoice Company Code'].unique()
     filtered_detail_df = detail_df[detail_df['Company'].isin(valid_companies)]
@@ -58,23 +58,27 @@ if invoice_file and template_file:
 
     department_summary = thchhi_df.groupby('Department')['Monthly Premium'].sum().reset_index()
 
-    # Debug table 1: Raw Department codes
+    # Debug Table 1: Raw Department codes
     st.subheader("Debug Table 1: Raw Department Codes from THC & HHI")
     st.dataframe(department_summary)
 
-    # Debug table 2: Stripped Department codes
+    # Strip first two characters and ensure string format
     department_summary['Stripped Code'] = department_summary['Department'].apply(
-        lambda x: x[2:] if isinstance(x, str) and len(x) >= 2 else x
+        lambda x: str(x)[2:] if pd.notna(x) and isinstance(x, (str, int, float)) and len(str(x)) >= 2 else str(x)
     )
+
     st.subheader("Debug Table 2: Stripped Department Codes")
     st.dataframe(department_summary[['Department', 'Stripped Code', 'Monthly Premium']])
 
-    # Debug table 3: Mapped DESC values
+    # Map stripped codes to DESC values
     cc_desc_map = template_df[['CC', 'DESC']].dropna()
-    cc_desc_dict = dict(zip(cc_desc_map['CC'].astype(str), cc_desc_map['DESC']))
+    cc_desc_map['CC'] = cc_desc_map['CC'].apply(lambda x: str(int(x)) if isinstance(x, float) else str(x))
+    cc_desc_dict = dict(zip(cc_desc_map['CC'], cc_desc_map['DESC']))
+
     department_summary['Mapped DESC'] = department_summary['Stripped Code'].apply(
         lambda x: cc_desc_dict.get(x, x)
     )
+
     st.subheader("Debug Table 3: Mapped DESC Values")
     st.dataframe(department_summary[['Stripped Code', 'Mapped DESC', 'Monthly Premium']])
 
@@ -87,13 +91,41 @@ if invoice_file and template_file:
         })
     department_df = pd.DataFrame(department_rows)
 
-    # Display final tables
-    st.subheader("Summary Table")
-    st.dataframe(final_df)
-
-    st.subheader("Company & Division Breakdown (Filtered)")
-    st.dataframe(breakdown_df)
-
     st.subheader("THC & HHI Department Breakdown")
     st.dataframe(department_df)
 
+    # Export to Excel
+    def convert_df_to_excel(df1, df2, df3):
+        from io import BytesIO
+        from openpyxl import Workbook
+        from openpyxl.utils.dataframe import dataframe_to_rows
+
+        output = BytesIO()
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Aflac Invoice and Support'
+
+        # Table 1 at A1
+        for r in dataframe_to_rows(df1, index=False, header=True):
+            ws.append(r)
+
+        # Table 2 at E1
+        for i, r in enumerate(dataframe_to_rows(df2, index=False, header=True), start=1):
+            for j, val in enumerate(r, start=5):
+                ws.cell(row=i, column=j, value=val)
+
+        # Table 3 at H1
+        for i, r in enumerate(dataframe_to_rows(df3, index=False, header=True), start=1):
+            for j, val in enumerate(r, start=8):
+                ws.cell(row=i, column=j, value=val)
+
+        wb.save(output)
+        return output.getvalue()
+
+    excel_data = convert_df_to_excel(final_df, breakdown_df, department_df)
+    st.download_button(
+        label="Download Aflac Invoice and Support Excel",
+        data=excel_data,
+        file_name="Aflac_Invoice_and_Support.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
