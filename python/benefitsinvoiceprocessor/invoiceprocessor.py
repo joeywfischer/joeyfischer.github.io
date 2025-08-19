@@ -21,6 +21,13 @@ if invoice_file and template_file:
         df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
         df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
+        # [Mapping logic remains unchanged — omitted for brevity]
+
+        # --- Medius Template Output ---
+        output_template = io.BytesIO()
+        df_template.to_excel(output_template, index=False, sheet_name='Updated Medius Template', engine='openpyxl')
+        output_template.seek(0)
+
         # --- Invoice Support Table ---
         df_support = df_invoice[['Company', 'Monthly Premium']].dropna().groupby('Company')['Monthly Premium'].sum().reset_index()
         df_support = df_support.rename(columns={'Company': 'Invoice Company Code', 'Monthly Premium': 'Sum of Monthly Premium'})
@@ -32,7 +39,6 @@ if invoice_file and template_file:
         )
         df_support = df_support.dropna()
         df_support = df_support[['Invoice Company Code', 'Sum of Monthly Premium', 'Full Company Name']]
-        df_support.loc[len(df_support.index)] = ['Grand Total', df_support['Sum of Monthly Premium'].sum(), '']
 
         # --- Additional Break-Down Table ---
         valid_divisions = df_code_map['Division Code'].dropna().astype(str).str.strip().unique()
@@ -47,75 +53,65 @@ if invoice_file and template_file:
         )
         df_division_summary = df_division_summary.dropna()
         df_division_summary = df_division_summary[['Division Description', 'Sum of Monthly Premium']]
-        df_division_summary.loc[len(df_division_summary.index)] = ['Grand Total', df_division_summary['Sum of Monthly Premium'].sum()]
 
-        # --- Save to one sheet with spacing ---
-        output_combined = io.BytesIO()
-        with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
-            sheet_name = 'Combined Report'
-            workbook = writer.book
-            worksheet = workbook.create_sheet(title=sheet_name)
+        # --- Save with formatting ---
+        output_support = io.BytesIO()
+        with pd.ExcelWriter(output_support, engine='openpyxl') as writer:
+            # Write all sheets
+            df_template.to_excel(writer, index=False, sheet_name='Updated Medius Template')
+            df_support.to_excel(writer, index=False, sheet_name='Invoice Support')
+            df_division_summary.to_excel(writer, index=False, sheet_name='Additional Break-Down')
 
-            # Write Invoice Support
-            for r_idx, row in enumerate(df_support.itertuples(index=False), start=2):
-                for c_idx, value in enumerate(row, start=1):
-                    worksheet.cell(row=r_idx, column=c_idx, value=value)
+            for sheet_name in ['Invoice Support', 'Additional Break-Down']:
+                worksheet = writer.sheets[sheet_name]
+                header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
+                header_font = Font(bold=True)
 
-            # Write headers
-            for c_idx, col_name in enumerate(df_support.columns, start=1):
-                cell = worksheet.cell(row=1, column=c_idx, value=col_name)
-                cell.fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
-                cell.font = Font(bold=True)
+                # Format header
+                for col_num in range(1, worksheet.max_column + 1):
+                    cell = worksheet.cell(row=1, column=col_num)
+                    cell.fill = header_fill
+                    cell.font = header_font
 
-            # Format currency column
-            for r in range(2, 2 + len(df_support)):
-                worksheet.cell(row=r, column=2).number_format = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
+                # Adjust column widths
+                for col in worksheet.columns:
+                    max_length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in col)
+                    worksheet.column_dimensions[get_column_letter(col[0].column)].width = max_length + 2
 
-            # Style Grand Total
-            total_row = 1 + len(df_support)
-            worksheet.cell(row=total_row, column=1).font = Font(bold=True)
-            worksheet.cell(row=total_row, column=1).fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
+                # Format currency column (column 2)
+                for row in range(2, worksheet.max_row + 1):
+                    cell = worksheet.cell(row=row, column=2)
+                    cell.number_format = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
 
-            # Leave spacing
-            start_row = total_row + 3
+                # Add and style Grand Total row
+                total = sum([worksheet.cell(row=r, column=2).value or 0 for r in range(2, worksheet.max_row + 1)])
+                total_row = worksheet.max_row + 1
+                worksheet.cell(row=total_row, column=1).value = 'Grand Total'
+                worksheet.cell(row=total_row, column=1).font = header_font
+                worksheet.cell(row=total_row, column=1).fill = header_fill
+                worksheet.cell(row=total_row, column=2).value = total
+                worksheet.cell(row=total_row, column=2).number_format = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
 
-            # Write Additional Break-Down
-            for r_idx, row in enumerate(df_division_summary.itertuples(index=False), start=start_row + 1):
-                for c_idx, value in enumerate(row, start=1):
-                    worksheet.cell(row=r_idx, column=c_idx, value=value)
+        output_support.seek(0)
 
-            # Headers
-            for c_idx, col_name in enumerate(df_division_summary.columns, start=1):
-                cell = worksheet.cell(row=start_row, column=c_idx, value=col_name)
-                cell.fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
-                cell.font = Font(bold=True)
-
-            # Format currency
-            for r in range(start_row + 1, start_row + 1 + len(df_division_summary)):
-                worksheet.cell(row=r, column=2).number_format = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
-
-            # Style Grand Total
-            total_row_2 = start_row + len(df_division_summary)
-            worksheet.cell(row=total_row_2, column=1).font = Font(bold=True)
-            worksheet.cell(row=total_row_2, column=1).fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
-
-            # Adjust column widths
-            for col in worksheet.columns:
-                max_length = max(len(str(cell.value)) if cell.value else 0 for cell in col)
-                worksheet.column_dimensions[get_column_letter(col[0].column)].width = max_length + 2
-
-        output_combined.seek(0)
-
-        # --- Streamlit Output ---
-        st.success("Combined report generated!")
+        # --- Streamlit Outputs ---
+        st.success("Processing complete!")
 
         st.download_button(
-            label="Download Combined Aflac Report",
-            data=output_combined,
-            file_name="Combined_Aflac_Report.xlsx",
+            label="Download Updated Medius Template",
+            data=output_template,
+            file_name="Complete_Aflac_Medius_Template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        st.download_button(
+            label="Download Aflac Invoice and Support",
+            data=output_support,
+            file_name="Aflac_Invoice_and_Support.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
