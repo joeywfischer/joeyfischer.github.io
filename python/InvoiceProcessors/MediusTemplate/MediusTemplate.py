@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("Aflac Invoice Processor")
+st.title("Aflac Medius Template Updater")
 
 invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
