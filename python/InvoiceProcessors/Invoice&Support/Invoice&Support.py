@@ -5,7 +5,7 @@ st.title("Aflac Invoice and Support Generator")
 
 # Upload both files
 invoice_file = st.file_uploader("Upload Invoice Excel File", type=["xlsx"], key="invoice")
-template_file = st.file_uploader("Upload Template Excel File (with Code Map sheet)", type=["xlsx"], key="template")
+template_file = st.file_uploader("Upload Medius Template Excel File (with Code Map sheet)", type=["xlsx"], key="template")
 
 if invoice_file and template_file:
     # Load invoice data
