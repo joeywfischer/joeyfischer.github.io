@@ -17,15 +17,18 @@ if invoice_file and template_file:
     first_sheet_name = template_xls.sheet_names[0]
     template_df = pd.read_excel(template_xls, sheet_name=first_sheet_name, engine='openpyxl')
 
-    # Table 1: Summary by Company
+    # Load Code Map sheet
+    code_map_df = pd.read_excel(template_xls, sheet_name='Code Map', engine='openpyxl')
+
+    # Table 1: Summary by Company (grouped properly to avoid duplicates)
     premium_summary = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
     premium_summary.columns = ['Row Labels', 'Sum of Monthly Premium']
 
-    code_map_df = pd.read_excel(template_xls, sheet_name='Code Map', engine='openpyxl')
     result_df = premium_summary.merge(
         code_map_df[['Invoice Company Code', 'Company Description']],
         left_on='Row Labels', right_on='Invoice Company Code', how='left'
-    )
+    ).drop_duplicates(subset=['Row Labels'])
+
     result_df.rename(columns={'Company Description': 'Full Company Name'}, inplace=True)
     final_df = result_df[['Row Labels', 'Sum of Monthly Premium', 'Full Company Name']]
 
@@ -44,19 +47,19 @@ if invoice_file and template_file:
                 breakdown_rows.append({'Label': f"  {div}", 'Monthly Premium': div_premium})
     breakdown_df = pd.DataFrame(breakdown_rows)
 
-    # Table 3: THC & HHI breakdown
+    # Table 3: THC & HHI breakdown using Department column
     thchhi_df = detail_df[detail_df['Company'].isin(['THC', 'HHI'])]
     total_thchhi = thchhi_df['Monthly Premium'].sum()
 
-    division_summary = thchhi_df.groupby('Division')['Monthly Premium'].sum().reset_index()
+    department_summary = thchhi_df.groupby('Department')['Monthly Premium'].sum().reset_index()
 
     department_rows = [{'Department': 'THC & HHI', 'Sum of Monthly Premium': total_thchhi}]
     cc_desc_map = template_df[['CC', 'DESC']].dropna()
     cc_desc_dict = dict(zip(cc_desc_map['CC'].astype(str), cc_desc_map['DESC']))
 
-    for div_code, premium in division_summary.values:
-        if pd.notna(div_code) and isinstance(div_code, str) and len(div_code) >= 2:
-            stripped_code = div_code[2:]
+    for dept_code, premium in department_summary.values:
+        if pd.notna(dept_code) and isinstance(dept_code, str) and len(dept_code) >= 2:
+            stripped_code = dept_code[2:]
             department_name = cc_desc_dict.get(stripped_code, stripped_code)
             department_rows.append({'Department': department_name, 'Sum of Monthly Premium': premium})
 
@@ -107,4 +110,3 @@ if invoice_file and template_file:
         file_name="Aflac_Invoice_and_Support.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
