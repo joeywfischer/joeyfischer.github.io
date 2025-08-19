@@ -8,19 +8,16 @@ invoice_file = st.file_uploader("Upload Invoice Excel File", type=["xlsx"], key=
 template_file = st.file_uploader("Upload Template Excel File (with Code Map sheet)", type=["xlsx"], key="template")
 
 if invoice_file and template_file:
-    # Load the Detail sheet from the invoice file
     invoice_xls = pd.ExcelFile(invoice_file, engine='openpyxl')
     detail_df = pd.read_excel(invoice_xls, sheet_name='Detail', engine='openpyxl')
 
-    # Load the Code Map sheet from the template file
     template_xls = pd.ExcelFile(template_file, engine='openpyxl')
     code_map_df = pd.read_excel(template_xls, sheet_name='Code Map', engine='openpyxl')
 
-    # Summarize Monthly Premium by Company
+    # First table: Summary by Company
     premium_summary = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
     premium_summary.columns = ['Row Labels', 'Sum of Monthly Premium']
 
-    # Merge with Code Map to get Full Company Name
     result_df = premium_summary.merge(
         code_map_df[['Invoice Company Code', 'Company Description']],
         left_on='Row Labels', right_on='Invoice Company Code', how='left'
@@ -29,20 +26,49 @@ if invoice_file and template_file:
     result_df.rename(columns={'Company Description': 'Full Company Name'}, inplace=True)
     final_df = result_df[['Row Labels', 'Sum of Monthly Premium', 'Full Company Name']]
 
-    st.dataframe(final_df)
+    # Second table: Summary by Division Description grouped by Invoice Company Code
+    merged_df = detail_df.merge(
+        code_map_df[['Invoice Company Code', 'Division Description']],
+        left_on='Company', right_on='Invoice Company Code', how='left'
+    )
 
-    def convert_df_to_excel(df):
+    division_summary = (
+        merged_df[merged_df['Division Description'].notna()]
+        .groupby(['Invoice Company Code', 'Division Description'])['Monthly Premium']
+        .sum()
+        .reset_index()
+    )
+    division_summary.columns = ['Invoice Company Code', 'Division', 'Sum of Monthly Premium']
+
+    st.dataframe(final_df)
+    st.dataframe(division_summary)
+
+    def convert_df_to_excel(df1, df2):
         from io import BytesIO
+        from openpyxl import Workbook
+        from openpyxl.utils.dataframe import dataframe_to_rows
+
         output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Aflac Invoice and Support')
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Aflac Invoice and Support'
+
+        # Write first table starting at A1
+        for r in dataframe_to_rows(df1, index=False, header=True):
+            ws.append(r)
+
+        # Write second table starting at E1
+        for i, r in enumerate(dataframe_to_rows(df2, index=False, header=True), start=1):
+            for j, val in enumerate(r, start=5):  # Column E is index 5
+                ws.cell(row=i, column=j, value=val)
+
+        wb.save(output)
         return output.getvalue()
 
-    excel_data = convert_df_to_excel(final_df)
+    excel_data = convert_df_to_excel(final_df, division_summary)
     st.download_button(
         label="Download Aflac Invoice and Support Excel",
         data=excel_data,
         file_name="Aflac_Invoice_and_Support.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
