@@ -86,16 +86,6 @@ if invoice_file and template_file:
         })
     department_df = pd.DataFrame(department_rows)
 
-    # Display final tables
-    st.subheader("Summary Table")
-    st.dataframe(final_df)
-
-    st.subheader("Company & Division Breakdown (Filtered)")
-    st.dataframe(breakdown_df)
-
-    st.subheader("THC & HHI Department Breakdown")
-    st.dataframe(department_df)
-
     # Export to Excel with formatting
     def convert_df_to_excel(df1, df2, df3):
         from io import BytesIO
