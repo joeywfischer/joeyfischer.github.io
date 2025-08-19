@@ -8,13 +8,14 @@ invoice_file = st.file_uploader("Upload Invoice Excel File", type=["xlsx"], key=
 template_file = st.file_uploader("Upload Template Excel File (with Code Map sheet)", type=["xlsx"], key="template")
 
 if invoice_file and template_file:
+    # Load data
     invoice_xls = pd.ExcelFile(invoice_file, engine='openpyxl')
     detail_df = pd.read_excel(invoice_xls, sheet_name='Detail', engine='openpyxl')
 
     template_xls = pd.ExcelFile(template_file, engine='openpyxl')
     code_map_df = pd.read_excel(template_xls, sheet_name='Code Map', engine='openpyxl')
 
-    # First table: Summary by Company
+    # Table 1: Summary by Company
     premium_summary = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
     premium_summary.columns = ['Row Labels', 'Sum of Monthly Premium']
 
@@ -26,38 +27,28 @@ if invoice_file and template_file:
     result_df.rename(columns={'Company Description': 'Full Company Name'}, inplace=True)
     final_df = result_df[['Row Labels', 'Sum of Monthly Premium', 'Full Company Name']]
 
-    # Second table: Summary by Division Description grouped by Invoice Company Code
-    merged_df = detail_df.merge(
-        code_map_df[['Invoice Company Code', 'Division Description']],
-        left_on='Company', right_on='Invoice Company Code', how='left'
-    )
+    # Table 2: Hierarchical breakdown by Company and Division
+    breakdown_rows = []
+    company_totals = detail_df.groupby('Company')['Monthly Premium'].sum().reset_index()
 
-    division_summary = (
-        merged_df[merged_df['Division Description'].notna()]
-        .groupby(['Invoice Company Code', 'Division Description'])['Monthly Premium']
-        .sum()
-        .reset_index()
-    )
-    division_summary.columns = ['Invoice Company Code', 'Division', 'Sum of Monthly Premium']
+    for company, comp_premium in company_totals.values:
+        breakdown_rows.append({'Label': company, 'Monthly Premium': comp_premium})
+        divisions = detail_df[detail_df['Company'] == company].groupby('Division')['Monthly Premium'].sum().reset_index()
+        for div, div_premium in divisions.values:
+            if pd.notna(div):
+                breakdown_rows.append({'Label': f"  {div}", 'Monthly Premium': div_premium})
 
-    # Third table: Additional Break-Down by Division Code
-    if 'Division Code' in code_map_df.columns:
-        breakdown_df = detail_df.merge(
-            code_map_df[['Invoice Company Code', 'Division Description', 'Division Code']],
-            left_on='Company', right_on='Invoice Company Code', how='left'
-        )
+    breakdown_df = pd.DataFrame(breakdown_rows)
 
-        breakdown_df = breakdown_df[breakdown_df['Division Description'].notna() & breakdown_df['Division Code'].notna()]
-        breakdown_summary = breakdown_df.groupby(['Division Description', 'Division Code'])['Monthly Premium'].sum().reset_index()
-        breakdown_summary.columns = ['Division Description', 'Division', 'Cost']
-    else:
-        breakdown_summary = pd.DataFrame(columns=['Division Description', 'Division', 'Cost'])
-
+    # Display tables in Streamlit
+    st.subheader("Summary Table")
     st.dataframe(final_df)
-    st.dataframe(division_summary)
-    st.dataframe(breakdown_summary)
 
-    def convert_df_to_excel(df1, df2, df3):
+    st.subheader("Company & Division Breakdown")
+    st.dataframe(breakdown_df)
+
+    # Export to Excel
+    def convert_df_to_excel(df1, df2):
         from io import BytesIO
         from openpyxl import Workbook
         from openpyxl.utils.dataframe import dataframe_to_rows
@@ -67,26 +58,19 @@ if invoice_file and template_file:
         ws = wb.active
         ws.title = 'Aflac Invoice and Support'
 
-        # Write first table starting at A1
+        # Write Table 1 at A1
         for r in dataframe_to_rows(df1, index=False, header=True):
             ws.append(r)
 
-        # Write second table starting at E1
+        # Write Table 2 at E1
         for i, r in enumerate(dataframe_to_rows(df2, index=False, header=True), start=1):
             for j, val in enumerate(r, start=5):  # Column E is index 5
-                ws.cell(row=i, column=j, value=val)
-
-        # Write third table below the existing tables
-        start_row = max(len(df1), len(df2)) + 3
-        ws.cell(row=start_row, column=1, value='Additional Break-Down')
-        for i, r in enumerate(dataframe_to_rows(df3, index=False, header=True), start=start_row + 1):
-            for j, val in enumerate(r, start=1):
                 ws.cell(row=i, column=j, value=val)
 
         wb.save(output)
         return output.getvalue()
 
-    excel_data = convert_df_to_excel(final_df, division_summary, breakdown_summary)
+    excel_data = convert_df_to_excel(final_df, breakdown_df)
     st.download_button(
         label="Download Aflac Invoice and Support Excel",
         data=excel_data,
