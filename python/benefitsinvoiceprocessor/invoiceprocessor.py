@@ -97,6 +97,9 @@ if invoice_file and template_file:
         df_template.to_excel(output, index=False, engine='openpyxl')
         output.seek(0)
 
+        st.write("Invoice Summary:", df_invoice[['Company', 'Division', 'Monthly Premium']].groupby(['Company', 'Division']).sum())
+        st.write("Unmapped Invoice Rows:", df_invoice[~df_invoice.index.isin(mapped_indices)])
+        
         st.success("Processing complete!")
         st.download_button(
             label="Download Updated Medius Template",
