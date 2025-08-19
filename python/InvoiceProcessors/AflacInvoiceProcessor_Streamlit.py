@@ -96,10 +96,11 @@ if invoice_file and template_file:
     st.subheader("THC & HHI Department Breakdown")
     st.dataframe(department_df)
 
-    # Export to Excel
+    # Export to Excel with formatting
     def convert_df_to_excel(df1, df2, df3):
         from io import BytesIO
         from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, NamedStyle
         from openpyxl.utils.dataframe import dataframe_to_rows
 
         output = BytesIO()
@@ -107,19 +108,47 @@ if invoice_file and template_file:
         ws = wb.active
         ws.title = 'Aflac Invoice and Support'
 
+        # Styles
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+        bold_font = Font(bold=True)
+        currency_style = NamedStyle(name="currency_style", number_format='"$"#,##0.00')
+
         # Table 1 at A1
-        for r in dataframe_to_rows(df1, index=False, header=True):
-            ws.append(r)
+        for r_idx, r in enumerate(dataframe_to_rows(df1, index=False, header=True), start=1):
+            for c_idx, val in enumerate(r, start=1):
+                cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                if r_idx == 1:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                elif c_idx == 2 and r_idx > 1:
+                    cell.style = currency_style
+                if r_idx == len(df1) + 1 and df1.iloc[-1]['Row Labels'] == 'Grand Total':
+                    cell.font = bold_font
 
         # Table 2 at E1
-        for i, r in enumerate(dataframe_to_rows(df2, index=False, header=True), start=1):
-            for j, val in enumerate(r, start=5):
-                ws.cell(row=i, column=j, value=val)
+        for r_idx, r in enumerate(dataframe_to_rows(df2, index=False, header=True), start=1):
+            for c_idx, val in enumerate(r, start=5):
+                cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                if r_idx == 1:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                elif c_idx == 6 and r_idx > 1:
+                    cell.style = currency_style
+                if c_idx == 5 and r_idx > 1 and not str(val).startswith("  "):
+                    cell.font = bold_font
 
         # Table 3 at H1
-        for i, r in enumerate(dataframe_to_rows(df3, index=False, header=True), start=1):
-            for j, val in enumerate(r, start=8):
-                ws.cell(row=i, column=j, value=val)
+        for r_idx, r in enumerate(dataframe_to_rows(df3, index=False, header=True), start=1):
+            for c_idx, val in enumerate(r, start=8):
+                cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                if r_idx == 1:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                elif c_idx == 9 and r_idx > 1:
+                    cell.style = currency_style
+                if c_idx == 8 and r_idx > 1 and str(val).strip() == 'THC & HHI':
+                    cell.font = bold_font
 
         wb.save(output)
         return output.getvalue()
