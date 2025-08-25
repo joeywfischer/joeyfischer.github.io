@@ -26,7 +26,7 @@ if invoice_file and template_file and approver_name:
 
         # Mappings
         gl_map = df_gl_acct.set_index('Group')['G/L ACCT'].to_dict()
-        dept_map = df_heico_dept.set_index('Department')['Organization Code'].to_dict()
+        dept_map = df_heico_dept.set_index('Department')['Department Code'].to_dict()
         interco_map = df_code_map.set_index('Invoice Company Code')['Template Inter-Co'].to_dict()
         desc_map_div = df_code_map[df_code_map['Division Code'].notna()].set_index('Division Code')['Template Desc'].to_dict()
         desc_map_company = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Desc'].to_dict()
