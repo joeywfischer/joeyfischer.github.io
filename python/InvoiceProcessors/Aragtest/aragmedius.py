@@ -15,6 +15,7 @@ if invoice_file and template_file and approver_name:
         df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
         df_gl_acct = pd.read_excel(template_file, sheet_name='GL ACCT', engine='openpyxl')
         df_heico_dept = pd.read_excel(template_file, sheet_name='Heico Departments', engine='openpyxl')
+        df_template = pd.read_excel(template_file, sheet_name=0, engine='openpyxl')
 
         # Normalize invoice data
         df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
@@ -61,34 +62,28 @@ if invoice_file and template_file and approver_name:
         # Add Approver
         df_invoice['Approver'] = approver_name
 
-        # Separate HHI and THC for department-based grouping
-        hhi_thc_df = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
-        other_df = df_invoice[~df_invoice['Company'].isin(['HHI', 'THC'])].copy()
-
-        # Group HHI/THC by CC
-        grouped_hhi_thc = hhi_thc_df.groupby(['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False)['Monthly Premium'].sum().reset_index()
-
-        # Group other companies by DESC and Inter-Co
-        grouped_other = other_df.groupby(['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False)['Monthly Premium'].sum().reset_index()
-
-        # Combine both grouped data
-        df_template = pd.concat([grouped_hhi_thc, grouped_other], ignore_index=True)
-
         # Rename Monthly Premium to NET
-        df_template.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
+        df_invoice['NET'] = df_invoice['Monthly Premium']
+
+        # Select only the columns needed for the template
+        invoice_rows = df_invoice[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']].copy()
+
+        # Append invoice rows to the template
+        df_result = pd.concat([df_template, invoice_rows], ignore_index=True)
 
         # Final Output
         output = io.BytesIO()
-        df_template.to_excel(output, index=False, engine='openpyxl')
+        df_result.to_excel(output, index=False, engine='openpyxl')
         output.seek(0)
 
-        st.success("Template generation complete!")
+        st.success("Template updated with mapped invoice data!")
         st.download_button(
-            label="Download Generated Medius Template",
+            label="Download Updated Medius Template",
             data=output,
-            file_name="Generated_Aflac_Medius_Template.xlsx",
+            file_name="Updated_Aflac_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
