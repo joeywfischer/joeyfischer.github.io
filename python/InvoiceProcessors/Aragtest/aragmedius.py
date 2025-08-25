@@ -29,7 +29,7 @@ if invoice_file and template_file and approver_name:
         gl_map = df_gl_acct.set_index('Group')['G/L ACCT'].to_dict()
         df_invoice['G/L ACCT'] = df_invoice['Group'].map(gl_map)
 
-        # Strip Department prefix and map to department Code
+        # Strip Department prefix and map to Organization Code
         def strip_prefix(dept, company):
             if company == 'HHI' and dept.startswith('10'):
                 return dept[2:]
@@ -57,7 +57,7 @@ if invoice_file and template_file and approver_name:
             lambda row: row['DESC'] if pd.notna(row['DESC']) else desc_map_company.get(row['Company'], ''),
             axis=1
         )
-        
+
         # Add Approver
         df_invoice['Approver'] = approver_name
 
@@ -83,3 +83,4 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
