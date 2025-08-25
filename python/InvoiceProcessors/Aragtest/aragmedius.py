@@ -78,6 +78,12 @@ if invoice_file and template_file and approver_name:
         df_updated.to_excel(output, index=False, engine='openpyxl')
         output.seek(0)
 
+        st.subheader("Preview of Invoice Data After Mapping")
+        st.dataframe(df_invoice.head(20))
+        
+        st.subheader("Filtered Invoice Data Used for Aggregation")
+        st.dataframe(df_invoice_clean.head(20))
+
         st.success("Template update complete!")
         st.download_button(
             label="Download Updated Medius Template",
