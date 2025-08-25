@@ -39,7 +39,7 @@ if invoice_file and template_file and approver_name:
             return dept
 
         df_invoice['Stripped Dept'] = df_invoice.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
-        dept_map = df_heico_dept.set_index('Department')['Organization Code'].to_dict()
+        dept_map = df_heico_dept.set_index('Department')['Department Code'].to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
         # Map Inter-Co from Code Map
