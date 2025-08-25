@@ -33,7 +33,7 @@ if invoice_file and template_file and approver_name:
         gl_map = df_gl_acct.set_index('Group')['G/L ACCT'].to_dict()
         df_invoice['G/L ACCT'] = df_invoice['Group'].map(gl_map)
 
-        # Strip Department prefix and map to Organization Code
+        # Strip Department prefix and map to Department Code
         def strip_prefix(dept, company):
             if company == 'HHI' and dept.startswith('10'):
                 return dept[2:]
@@ -42,7 +42,7 @@ if invoice_file and template_file and approver_name:
             return dept
 
         df_invoice['Stripped Dept'] = df_invoice.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
-        dept_map = df_heico_dept.set_index('Department')['Organization Code'].astype(str).str.strip().to_dict()
+        dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
         # Map Inter-Co from Code Map
