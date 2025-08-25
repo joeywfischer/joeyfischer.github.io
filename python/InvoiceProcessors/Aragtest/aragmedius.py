@@ -33,7 +33,7 @@ if invoice_file and template_file and approver_name:
         gl_map = df_gl_acct.set_index('Group')['G/L ACCT'].to_dict()
         df_invoice['G/L ACCT'] = df_invoice['Group'].map(gl_map)
 
-        # Strip Department prefix and map to Department Code
+        # Strip Department prefix and map to Organization Code
         def strip_prefix(dept, company):
             if company == 'HHI' and dept.startswith('10'):
                 return dept[2:]
@@ -42,7 +42,7 @@ if invoice_file and template_file and approver_name:
             return dept
 
         df_invoice['Stripped Dept'] = df_invoice.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
-        dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
+        dept_map = df_heico_dept.set_index('Department')['Organization Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
         # Map Inter-Co from Code Map
@@ -61,12 +61,12 @@ if invoice_file and template_file and approver_name:
         desc_map_company = df_code_map[df_code_map['Division Code'].isna()]
         desc_map_company = desc_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
         df_invoice['DESC'] = df_invoice.apply(
-            lambda row: row['DESC'] if isinstance(row['DESC'], str) and row['DESC'].lower() != 'nan' and row['DESC'].strip() != '' else desc_map_company.get(row['Company'], ''),
+            lambda row: row['DESC'] if isinstance(row['DESC'], str) and row['DESC'].strip() != '' else desc_map_company.get(row['Company'], ''),
             axis=1
         )
 
-        # Remove rows where DESC is 'nan' string or empty
-        df_invoice = df_invoice[df_invoice['DESC'].apply(lambda x: isinstance(x, str) and x.lower() != 'nan' and x.strip() != '')]
+        # Replace actual NaN values in DESC with empty strings
+        df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
 
         # Add Approver
         df_invoice['Approver'] = approver_name
@@ -97,5 +97,6 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
 
