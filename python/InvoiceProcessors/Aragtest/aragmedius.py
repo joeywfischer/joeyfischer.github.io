@@ -61,12 +61,12 @@ if invoice_file and template_file and approver_name:
         desc_map_company = df_code_map[df_code_map['Division Code'].isna()]
         desc_map_company = desc_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
         df_invoice['DESC'] = df_invoice.apply(
-            lambda row: row['DESC'] if row['DESC'].lower() != 'nan' and row['DESC'].strip() != '' else desc_map_company.get(row['Company'], ''),
+            lambda row: row['DESC'] if isinstance(row['DESC'], str) and row['DESC'].lower() != 'nan' and row['DESC'].strip() != '' else desc_map_company.get(row['Company'], ''),
             axis=1
         )
 
-        # Remove rows where DESC is 'nan' string
-        df_invoice = df_invoice[df_invoice['DESC'].str.lower() != 'nan']
+        # Remove rows where DESC is 'nan' string or empty
+        df_invoice = df_invoice[df_invoice['DESC'].apply(lambda x: isinstance(x, str) and x.lower() != 'nan' and x.strip() != '')]
 
         # Add Approver
         df_invoice['Approver'] = approver_name
@@ -97,4 +97,5 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
