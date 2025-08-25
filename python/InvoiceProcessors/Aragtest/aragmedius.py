@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("Aflac Medius Template Generator")
+st.title("Aflac Medius Template Updater")
 
 invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
@@ -12,10 +12,10 @@ if invoice_file and template_file and approver_name:
     try:
         # Load invoice and template data
         df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
+        df_template = pd.read_excel(template_file, sheet_name=0, engine='openpyxl')
         df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
         df_gl_acct = pd.read_excel(template_file, sheet_name='GL ACCT', engine='openpyxl')
         df_heico_dept = pd.read_excel(template_file, sheet_name='Heico Departments', engine='openpyxl')
-        df_template_headers = pd.read_excel(template_file, sheet_name='Aflac - Medius Excel Template', engine='openpyxl', nrows=0)
 
         # Normalize invoice data
         df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
@@ -30,7 +30,7 @@ if invoice_file and template_file and approver_name:
         gl_map = df_gl_acct.set_index('Group')['G/L ACCT'].to_dict()
         df_invoice['G/L ACCT'] = df_invoice['Group'].map(gl_map)
 
-        # Strip Department prefix and map to Organization Code and Department Name
+        # Strip Department prefix and map to Organization Code
         def strip_prefix(dept, company):
             if company == 'HHI' and dept.startswith('10'):
                 return dept[2:]
@@ -39,11 +39,8 @@ if invoice_file and template_file and approver_name:
             return dept
 
         df_invoice['Stripped Dept'] = df_invoice.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
-        dept_map = df_heico_dept.set_index('Department Code')['Organization Code'].to_dict()
-        dept_name_map = df_heico_dept.set_index('Department Code')['Department'].to_dict()
+        dept_map = df_heico_dept.set_index('Department')['Organization Code'].to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
-        df_invoice['Department Code'] = df_invoice['Stripped Dept']
-        df_invoice['Department'] = df_invoice['Stripped Dept'].map(dept_name_map)
 
         # Map Inter-Co from Code Map
         interco_map = df_code_map.set_index('Invoice Company Code')['Template Inter-Co'].to_dict()
@@ -64,31 +61,43 @@ if invoice_file and template_file and approver_name:
 
         # Add Approver
         df_invoice['Approver'] = approver_name
-
-        # Aggregate NET by all relevant columns
-        df_template = df_invoice.groupby(
-            ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'Department Code', 'Department'], dropna=False
+        # Aggregate NET by DESC, Inter-Co, CC, G/L ACCT, Approver
+        df_totals = df_invoice.groupby(
+            ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False
         )['Monthly Premium'].sum().reset_index()
 
-        df_template.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
+        df_totals.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
 
-        # Reorder columns to match the original template
-        ordered_columns = df_template_headers.columns.tolist()
-        df_template = df_template.reindex(columns=ordered_columns)
+        # Fill in the template with matching rows
+        df_template['DESC'] = df_template['DESC'].astype(str).str.strip()
+        df_template['Inter-Co'] = df_template['Inter-Co'].astype(str).str.strip()
+        df_template['CC'] = df_template['CC'].astype(str).str.strip()
+        df_template['G/L ACCT'] = df_template['G/L ACCT'].astype(str).str.strip()
+
+        for _, row in df_totals.iterrows():
+            match_rows = df_template[
+                (df_template['DESC'].str.lower() == str(row['DESC']).lower()) &
+                (df_template['Inter-Co'] == str(row['Inter-Co'])) &
+                (df_template['CC'] == str(row['CC'])) &
+                (df_template['G/L ACCT'] == str(row['G/L ACCT']))
+            ].index
+            df_template.loc[match_rows, 'NET'] = row['NET']
+            df_template.loc[match_rows, 'Approver'] = row['Approver']
 
         # Final Output
         output = io.BytesIO()
         df_template.to_excel(output, index=False, engine='openpyxl')
         output.seek(0)
 
-        st.success("Template generation complete!")
+        st.success("Template update complete!")
         st.download_button(
-            label="Download Generated Medius Template",
+            label="Download Updated Medius Template",
             data=output,
-            file_name="Generated_Aflac_Medius_Template.xlsx",
+            file_name="Updated_Aflac_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
