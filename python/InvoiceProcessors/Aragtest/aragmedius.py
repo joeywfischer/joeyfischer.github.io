@@ -29,7 +29,7 @@ if invoice_file and template_file and approver_name:
         gl_map = df_gl_acct.set_index('Group')['G/L ACCT'].to_dict()
         df_invoice['G/L ACCT'] = df_invoice['Group'].map(gl_map)
 
-        # Strip Department prefix and map to Department Code
+        # Strip Department prefix and map to Organization Code
         def strip_prefix(dept, company):
             if company == 'HHI' and dept.startswith('10'):
                 return dept[2:]
@@ -38,7 +38,7 @@ if invoice_file and template_file and approver_name:
             return dept
 
         df_invoice['Stripped Dept'] = df_invoice.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
-        dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
+        dept_map = df_heico_dept.set_index('Department')['Organization Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
         # Map Inter-Co from Code Map
@@ -61,25 +61,21 @@ if invoice_file and template_file and approver_name:
         # Add Approver
         df_invoice['Approver'] = approver_name
 
-        # Show mapped invoice data for debugging
-        st.subheader("Mapped Invoice Data Preview")
-        st.dataframe(df_invoice[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'Monthly Premium']].head(20))
+        # Separate HHI and THC for department-based grouping
+        hhi_thc_df = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
+        other_df = df_invoice[~df_invoice['Company'].isin(['HHI', 'THC'])].copy()
 
-        # Drop rows with missing critical fields before aggregation
-        df_invoice_clean = df_invoice.dropna(subset=['DESC', 'Inter-Co', 'CC', 'G/L ACCT'])
+        # Group HHI/THC by CC
+        grouped_hhi_thc = hhi_thc_df.groupby(['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False)['Monthly Premium'].sum().reset_index()
 
-        st.subheader("Filtered Invoice Data Used for Aggregation")
-        st.dataframe(df_invoice_clean[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'Monthly Premium']].head(20))
+        # Group other companies by DESC and Inter-Co
+        grouped_other = other_df.groupby(['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False)['Monthly Premium'].sum().reset_index()
 
-        # Aggregate NET by DESC, Inter-Co, CC, G/L ACCT, Approver
-        df_template = df_invoice_clean.groupby(
-            ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False
-        )['Monthly Premium'].sum().reset_index()
+        # Combine both grouped data
+        df_template = pd.concat([grouped_hhi_thc, grouped_other], ignore_index=True)
 
+        # Rename Monthly Premium to NET
         df_template.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
-
-        st.subheader("Final Template Preview")
-        st.dataframe(df_template.head(20))
 
         # Final Output
         output = io.BytesIO()
@@ -96,5 +92,4 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
-
 
