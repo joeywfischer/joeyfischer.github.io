@@ -23,6 +23,9 @@ if invoice_file and template_file and approver_name:
         df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
         df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
+        # Remove THC and HHI for now
+        df_invoice = df_invoice[~df_invoice['Company'].isin(['THC', 'HHI'])]
+
         # Determine Group (Heico or Non-Heico)
         df_invoice['Group'] = df_invoice['Company'].apply(lambda x: 'Heico' if x in ['HHI', 'THC'] else 'Non-Heico')
 
@@ -46,6 +49,9 @@ if invoice_file and template_file and approver_name:
         interco_map = df_code_map.set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
         df_invoice['Inter-Co'] = df_invoice['Company'].map(interco_map)
 
+        # Remove rows with missing Inter-Co
+        df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
+
         # Map DESC from Code Map using Division Code
         desc_map_div = df_code_map[df_code_map['Division Code'].notna()]
         desc_map_div = desc_map_div.set_index('Division Code')['Template Desc'].astype(str).str.strip().to_dict()
@@ -55,9 +61,12 @@ if invoice_file and template_file and approver_name:
         desc_map_company = df_code_map[df_code_map['Division Code'].isna()]
         desc_map_company = desc_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
         df_invoice['DESC'] = df_invoice.apply(
-            lambda row: row['DESC'] if pd.notna(row['DESC']) and row['DESC'] != '' else desc_map_company.get(row['Company'], ''),
+            lambda row: row['DESC'] if row['DESC'].lower() != 'nan' and row['DESC'].strip() != '' else desc_map_company.get(row['Company'], ''),
             axis=1
         )
+
+        # Remove rows where DESC is 'nan' string
+        df_invoice = df_invoice[df_invoice['DESC'].str.lower() != 'nan']
 
         # Add Approver
         df_invoice['Approver'] = approver_name
