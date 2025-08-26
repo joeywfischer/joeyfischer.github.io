@@ -139,6 +139,15 @@ if invoice_file and template_file and approver_name:
 
         # Select and reorder columns to match template
         df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
+        
+        # DEBUG: Show HHI/THC aggregated department data
+        st.subheader("Debug: HHI/THC Department Aggregation")
+        st.write("Aggregated Monthly Premiums by Department for HHI/THC:")
+        st.dataframe(df_dept_sum)
+
+        # Optional: Show mapping status
+        st.write("Mapped Department Codes:")
+        st.write(df_dept_sum[['Department', 'Department Code', 'DESC', 'CC']])
 
         # Append to result
         df_result = pd.concat([df_result, df_dept_sum], ignore_index=True)
