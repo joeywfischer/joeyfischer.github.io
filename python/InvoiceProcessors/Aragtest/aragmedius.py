@@ -45,29 +45,27 @@ if invoice_file and template_file and approver_name:
         dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
-        # Map DESC from Code Map
+       # Ensure Division Code is treated as string for mapping
+        df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip()
+        
+        # Map DESC from Code Map using Division Code
         desc_map_div = df_code_map[df_code_map['Division Code'].notna()]
         desc_map_div = desc_map_div.set_index('Division Code')['Template Desc'].astype(str).str.strip().to_dict()
-
-        desc_map_company = df_code_map[df_code_map['Division Code'].isna()]
-        desc_map_company = desc_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
-
-        df_invoice['DESC'] = df_invoice.apply(
-            lambda row: desc_map_div.get(row['Division'], desc_map_company.get(row['Company'], '')),
-            axis=1
-        )
-
-        # Map Inter-Co from Code Map
+        df_invoice['DESC'] = df_invoice['Division'].astype(str).str.strip().map(desc_map_div)
+        
+        # Map Inter-Co from Code Map using Division Code first
         interco_map_div = df_code_map[df_code_map['Division Code'].notna()]
         interco_map_div = interco_map_div.set_index('Division Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
-
+        df_invoice['Inter-Co'] = df_invoice['Division'].astype(str).str.strip().map(interco_map_div)
+        
+        # Fill Inter-Co from Code Map using Invoice Company Code if Division Code is not available
         interco_map_company = df_code_map[df_code_map['Division Code'].isna()]
         interco_map_company = interco_map_company.set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
-
         df_invoice['Inter-Co'] = df_invoice.apply(
-            lambda row: interco_map_div.get(row['Division'], interco_map_company.get(row['Company'], '')),
+            lambda row: row['Inter-Co'] if isinstance(row['Inter-Co'], str) and row['Inter-Co'].strip() != '' else interco_map_company.get(row['Company'], ''),
             axis=1
         )
+
 
         # Clean up DESC and Inter-Co
         df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
