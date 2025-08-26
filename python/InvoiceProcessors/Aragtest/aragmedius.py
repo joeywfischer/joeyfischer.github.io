@@ -75,29 +75,6 @@ if invoice_file and template_file and approver_name:
 
         df_invoice['DESC'] = df_invoice.apply(get_desc, axis=1)
         df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
-
-        # Remove rows with missing Inter-Co
-        df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
-
-        # Add Approver
-        df_invoice['Approver'] = approver_name
-
-        # Aggregate totals by DESC, Inter-Co, CC, G/L ACCT, Approver
-        df_aggregated = df_invoice.groupby(
-            ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False
-        )['Monthly Premium'].sum().reset_index()
-
-        # Rename Monthly Premium to NET
-        df_aggregated.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
-
-        # Append aggregated rows to the template
-        df_result = pd.concat([df_template, df_aggregated], ignore_index=True)
-
-        # Export to Excel
-        output = io.BytesIO()
-        df_result.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
-
         
         # Debug: Show rows with missing Division
         st.subheader("🔍 Debug: Rows with Missing Division")
@@ -122,6 +99,28 @@ if invoice_file and template_file and approver_name:
         missing_interco = df_invoice[(df_invoice['Inter-Co'] == '') | (df_invoice['Inter-Co'].isna())]
         st.write("Rows missing Inter-Co:", len(missing_interco))
         st.dataframe(missing_interco[['Company', 'Division', 'Inter-Co', 'DESC']].head(10))
+        
+        # Remove rows with missing Inter-Co
+        df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
+
+        # Add Approver
+        df_invoice['Approver'] = approver_name
+
+        # Aggregate totals by DESC, Inter-Co, CC, G/L ACCT, Approver
+        df_aggregated = df_invoice.groupby(
+            ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False
+        )['Monthly Premium'].sum().reset_index()
+
+        # Rename Monthly Premium to NET
+        df_aggregated.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
+
+        # Append aggregated rows to the template
+        df_result = pd.concat([df_template, df_aggregated], ignore_index=True)
+
+        # Export to Excel
+        output = io.BytesIO()
+        df_result.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
         
         st.success("Template updated with aggregated invoice data!")
         st.download_button(
