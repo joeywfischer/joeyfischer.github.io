@@ -104,7 +104,31 @@ if invoice_file and template_file and approver_name:
             data=output,
             file_name="Updated_Aflac_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+
+        # Debug: Show rows with missing Division
+        st.subheader("🔍 Debug: Rows with Missing Division")
+        missing_div = df_invoice[df_invoice['Division'].isna()]
+        st.write("Rows with missing Division:", len(missing_div))
+        st.dataframe(missing_div[['Company', 'Division', 'Inter-Co', 'DESC']].head(10))
+        
+        # Debug: Show rows with fallback Inter-Co
+        st.subheader("🔍 Debug: Fallback Inter-Co Applied")
+        fallback_interco_rows = df_invoice[df_invoice['Division'].isna() | ~df_invoice.set_index(['Company', 'Division']).index.isin(interco_map.keys())]
+        st.write("Rows using fallback Inter-Co:", len(fallback_interco_rows))
+        st.dataframe(fallback_interco_rows[['Company', 'Division', 'Inter-Co']].head(10))
+        
+        # Debug: Show rows with fallback DESC
+        st.subheader("🔍 Debug: Fallback DESC Applied")
+        fallback_desc_rows = df_invoice[df_invoice['Division'].isna() | ~df_invoice.set_index(['Company', 'Division']).index.isin(desc_map_full.keys())]
+        st.write("Rows using fallback DESC:", len(fallback_desc_rows))
+        st.dataframe(fallback_desc_rows[['Company', 'Division', 'DESC']].head(10))
+        
+        # Debug: Show rows that will be dropped
+        st.subheader("⚠️ Debug: Rows Missing Inter-Co (Will Be Dropped)")
+        missing_interco = df_invoice[(df_invoice['Inter-Co'] == '') | (df_invoice['Inter-Co'].isna())]
+        st.write("Rows missing Inter-Co:", len(missing_interco))
+        st.dataframe(missing_interco[['Company', 'Division', 'Inter-Co', 'DESC']].head(10))
+
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
