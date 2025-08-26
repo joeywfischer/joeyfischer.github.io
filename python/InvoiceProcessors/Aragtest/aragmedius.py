@@ -47,7 +47,7 @@ if invoice_file and template_file and approver_name:
 
         # Normalize Code Map
         df_code_map['Invoice Company Code'] = df_code_map['Invoice Company Code'].astype(str).str.strip().str.upper()
-        df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip()
+        df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip().replace('', pd.NA)
 
         # Inter-Co Mapping
         interco_map = df_code_map[df_code_map['Division Code'].notna()].drop_duplicates(subset=['Invoice Company Code', 'Division Code'])
@@ -58,12 +58,9 @@ if invoice_file and template_file and approver_name:
             if pd.isna(row['Division']) or str(row['Division']).strip() == '':
                 return fallback_interco_map.get(row['Company'], '')
             key = (row['Company'], row['Division'])
-            if key in interco_map and interco_map[key]:
-                return interco_map[key]
-            return fallback_interco_map.get(row['Company'], '')
+            return interco_map.get(key, fallback_interco_map.get(row['Company'], ''))
 
         df_invoice['Inter-Co'] = df_invoice.apply(get_interco, axis=1)
-        df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
 
         # DESC Mapping
         desc_map_full = df_code_map[df_code_map['Division Code'].notna()].drop_duplicates(subset=['Invoice Company Code', 'Division Code'])
@@ -74,12 +71,13 @@ if invoice_file and template_file and approver_name:
             if pd.isna(row['Division']) or str(row['Division']).strip() == '':
                 return desc_map_fallback.get(row['Company'], '')
             key = (row['Company'], row['Division'])
-            if key in desc_map_full and desc_map_full[key]:
-                return desc_map_full[key]
-            return desc_map_fallback.get(row['Company'], '')
+            return desc_map_full.get(key, desc_map_fallback.get(row['Company'], ''))
 
         df_invoice['DESC'] = df_invoice.apply(get_desc, axis=1)
         df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
+
+        # Remove rows with missing Inter-Co
+        df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
 
         # Add Approver
         df_invoice['Approver'] = approver_name
