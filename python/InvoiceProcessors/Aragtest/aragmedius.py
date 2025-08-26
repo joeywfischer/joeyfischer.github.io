@@ -98,13 +98,7 @@ if invoice_file and template_file and approver_name:
         df_result.to_excel(output, index=False, engine='openpyxl')
         output.seek(0)
 
-        st.success("Template updated with aggregated invoice data!")
-        st.download_button(
-            label="Download Updated Medius Template",
-            data=output,
-            file_name="Updated_Aflac_Medius_Template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
+        
         # Debug: Show rows with missing Division
         st.subheader("🔍 Debug: Rows with Missing Division")
         missing_div = df_invoice[df_invoice['Division'].isna()]
@@ -128,7 +122,13 @@ if invoice_file and template_file and approver_name:
         missing_interco = df_invoice[(df_invoice['Inter-Co'] == '') | (df_invoice['Inter-Co'].isna())]
         st.write("Rows missing Inter-Co:", len(missing_interco))
         st.dataframe(missing_interco[['Company', 'Division', 'Inter-Co', 'DESC']].head(10))
-
+        
+        st.success("Template updated with aggregated invoice data!")
+        st.download_button(
+            label="Download Updated Medius Template",
+            data=output,
+            file_name="Updated_Aflac_Medius_Template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
