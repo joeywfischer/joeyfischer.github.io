@@ -90,10 +90,7 @@ if invoice_file and template_file and approver_name:
             axis=1
         )
 
-        # Replace actual NaN values in DESC with empty strings
         df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
-
-        # Add Approver
         df_invoice['Approver'] = approver_name
 
         # Aggregate totals by DESC, Inter-Co, CC, G/L ACCT, Approver
@@ -101,58 +98,54 @@ if invoice_file and template_file and approver_name:
             ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False
         )['Monthly Premium'].sum().reset_index()
 
-        # Rename Monthly Premium to NET
         df_aggregated.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
-
-        # Remove rows with missing Inter-Co
         df_aggregated = df_aggregated[df_aggregated['Inter-Co'].notna() & (df_aggregated['Inter-Co'].str.strip() != '')]
         df_aggregated['DESC'] = df_aggregated['DESC'].fillna('').astype(str).replace('nan', '')
-        
+
         # Append aggregated rows to the template
         df_result = pd.concat([df_template, df_aggregated], ignore_index=True)
         df_result = df_result.sort_values(by='Inter-Co', ascending=True)
 
-        # Handle HHI and THC companies separately
-        df_heico = pd.read_excel(template_file, sheet_name='Heico Departments', engine='openpyxl')
-        df_heico_gl = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
-
+        # === NEW SECTION: Handle HHI and THC invoices ===
         df_hhi_thc = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
         df_hhi_thc = df_hhi_thc[df_hhi_thc['Company'].isin(['HHI', 'THC'])].copy()
-
         df_hhi_thc['Monthly Premium'] = pd.to_numeric(df_hhi_thc['Monthly Premium'], errors='coerce')
         df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
 
-        # Sum Monthly Premiums by Department
         df_dept_sum = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
 
         # Map Department to Template Code and Department Name
-        dept_map = df_heico.set_index('Department Code')[['Department', 'Template Code']].dropna().astype(str)
-        df_dept_sum['Department Code'] = df_dept_sum['Department'].map(lambda x: x if x in dept_map.index else None)
+        dept_lookup = df_heico_dept.set_index('Department Code')[['Department', 'Template Code']].dropna().astype(str)
+        df_dept_sum['Department Code'] = df_dept_sum['Department'].map(lambda x: x if x in dept_lookup.index else None)
         df_dept_sum = df_dept_sum[df_dept_sum['Department Code'].notna()]
 
-        df_dept_sum['DESC'] = df_dept_sum['Department Code'].map(dept_map['Department'])
-        df_dept_sum['CC'] = df_dept_sum['Department Code'].map(dept_map['Template Code'])
-        df_dept_sum['G/L ACCT'] = df_heico_gl
+        df_dept_sum['DESC'] = df_dept_sum['Department Code'].map(dept_lookup['Department'])
+        df_dept_sum['CC'] = df_dept_sum['Department Code'].map(dept_lookup['Template Code'])
+        df_dept_sum['G/L ACCT'] = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
         df_dept_sum['Inter-Co'] = 'HEICO'
         df_dept_sum['Approver'] = approver_name
         df_dept_sum.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
 
-        # Select and reorder columns to match template
         df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
-        
-        # DEBUG: Show HHI/THC aggregated department data
+
+        # === DEBUG BOX ===
         st.subheader("Debug: HHI/THC Department Aggregation")
-        st.write("Aggregated Monthly Premiums by Department for HHI/THC:")
+        st.write("Raw Aggregated Data:")
         st.dataframe(df_dept_sum)
 
-        # Optional: Show mapping status
-        st.write("Mapped Department Codes:")
-        st.write(df_dept_sum[['Department', 'Department Code', 'DESC', 'CC']])
+        expected_cols = ['Department', 'Department Code', 'DESC', 'CC']
+        available_cols = [col for col in expected_cols if col in df_dept_sum.columns]
 
-        # Append to result
+        if available_cols:
+            st.write("Mapped Columns:")
+            st.dataframe(df_dept_sum[available_cols])
+        else:
+            st.warning("Expected mapping columns not found in the DataFrame.")
+
+        # Append HHI/THC rows to result
         df_result = pd.concat([df_result, df_dept_sum], ignore_index=True)
 
-        # Export to Excel
+        # === EXPORT TO EXCEL ===
         output = io.BytesIO()
         df_result.to_excel(output, index=False, engine='openpyxl')
         output.seek(0)
