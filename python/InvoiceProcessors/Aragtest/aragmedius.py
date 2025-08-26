@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("Aflac Medius Template Generator")
+st.title("Medius Template Generator")
 
-invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
+invoice_file = st.file_uploader("Upload Invoice Excel File", type=["xlsx"])
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 approver_name = st.text_input("Enter Approver Name")
 
@@ -15,7 +15,7 @@ if invoice_file and template_file and approver_name:
         df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
         df_gl_acct = pd.read_excel(template_file, sheet_name='GL ACCT', engine='openpyxl')
         df_heico_dept = pd.read_excel(template_file, sheet_name='Heico Departments', engine='openpyxl')
-        df_template = pd.read_excel(template_file, sheet_name='Medius Excel Template', engine='openpyxl')
+        df_template = pd.read_excel(template_file, sheet_name=1, engine='openpyxl')
 
         # Normalize invoice data
         df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
@@ -122,7 +122,7 @@ if invoice_file and template_file and approver_name:
         st.download_button(
             label="Download Updated Medius Template",
             data=output,
-            file_name="Updated_Aflac_Medius_Template.xlsx",
+            file_name="Updated_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
