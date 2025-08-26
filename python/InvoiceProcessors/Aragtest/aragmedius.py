@@ -73,8 +73,8 @@ if invoice_file and template_file and approver_name:
         df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
         df_invoice['Inter-Co'] = df_invoice['Inter-Co'].fillna('').astype(str)
 
-        # Remove rows with missing Inter-Co
-        df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
+        # Only drop rows where Inter-Co is truly missing (not just repeated)
+        df_invoice = df_invoice[df_invoice['Inter-Co'].str.strip() != '']
 
         # Add Approver
         df_invoice['Approver'] = approver_name
@@ -105,4 +105,5 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
