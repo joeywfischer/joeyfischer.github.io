@@ -45,10 +45,9 @@ if invoice_file and template_file and approver_name:
         dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
-        # Normalize Code Map for merging
-        df_code_map['Invoice Company Code'] = df_code_map['Invoice Company Code'].astype(str).str.strip().str.upper()
-        df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip()
-
+       # Normalize Division values
+        df_invoice['Division'] = df_invoice['Division'].replace('', pd.NA)
+        
         # Merge to get Inter-Co based on both Company and Division
         df_invoice = pd.merge(
             df_invoice,
@@ -57,26 +56,26 @@ if invoice_file and template_file and approver_name:
             right_on=['Invoice Company Code', 'Division Code'],
             how='left'
         )
-
+        
         # Fallback: if Inter-Co is missing, map by Company only
         fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
         df_invoice['Inter-Co'] = df_invoice.apply(
-            lambda row: row['Template Inter-Co'] if pd.notna(row['Template Inter-Co']) and row['Template Inter-Co'].strip() != '' else fallback_interco_map.get(row['Company'], ''),
+            lambda row: row['Template Inter-Co']
+            if pd.notna(row['Template Inter-Co']) and str(row['Template Inter-Co']).strip() != ''
+            else fallback_interco_map.get(row['Company'], ''),
             axis=1
         )
-
+        
         df_invoice.drop(columns=['Template Inter-Co', 'Invoice Company Code', 'Division Code'], inplace=True)
-
+        
         # Remove rows with missing Inter-Co
         df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
-
-        # Map DESC using both Division Code and Invoice Company Code
+        
+        # DESC Mapping
         df_code_map_div = df_code_map[df_code_map['Division Code'].notna()]
         df_code_map_div['Division Code'] = df_code_map_div['Division Code'].astype(str).str.strip()
         df_code_map_div['Invoice Company Code'] = df_code_map_div['Invoice Company Code'].astype(str).str.strip().str.upper()
-        df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
-        df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
-
+        
         df_invoice = pd.merge(
             df_invoice,
             df_code_map_div[['Division Code', 'Invoice Company Code', 'Template Desc']],
@@ -84,20 +83,23 @@ if invoice_file and template_file and approver_name:
             right_on=['Division Code', 'Invoice Company Code'],
             how='left'
         )
-
+        
         df_invoice['DESC'] = df_invoice['Template Desc']
         df_invoice.drop(columns=['Template Desc', 'Division Code', 'Invoice Company Code'], inplace=True)
-
+        
         # Fallback DESC mapping using Invoice Company Code only
         desc_map_company = df_code_map[df_code_map['Division Code'].isna()]
         desc_map_company = desc_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
         df_invoice['DESC'] = df_invoice.apply(
-            lambda row: row['DESC'] if isinstance(row['DESC'], str) and row['DESC'].strip() != '' else desc_map_company.get(row['Company'], ''),
+            lambda row: row['DESC']
+            if isinstance(row['DESC'], str) and row['DESC'].strip() != ''
+            else desc_map_company.get(row['Company'], ''),
             axis=1
         )
-
+        
         # Replace actual NaN values in DESC with empty strings
         df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
+        
 
         # Add Approver
         df_invoice['Approver'] = approver_name
