@@ -19,7 +19,7 @@ if invoice_file and template_file and approver_name:
 
         # Normalize invoice data
         df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
-        df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
+        df_invoice['Division'] = df_invoice['Division'].apply(lambda x: str(x).strip() if pd.notna(x) else '')
         df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
         df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
@@ -42,66 +42,6 @@ if invoice_file and template_file and approver_name:
             return dept
 
         df_invoice['Stripped Dept'] = df_invoice.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
-        dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
-        df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
-
-       # Ensure Division Code is treated as string for mapping
-        df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip()
-        
-        # Map DESC from Code Map using Division Code
-        desc_map_div = df_code_map[df_code_map['Division Code'].notna()]
-        desc_map_div = desc_map_div.set_index('Division Code')['Template Desc'].astype(str).str.strip().to_dict()
-        df_invoice['DESC'] = df_invoice['Division'].astype(str).str.strip().map(desc_map_div)
-        
-        # Map Inter-Co from Code Map using Division Code first
-        interco_map_div = df_code_map[df_code_map['Division Code'].notna()]
-        interco_map_div = interco_map_div.set_index('Division Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
-        df_invoice['Inter-Co'] = df_invoice['Division'].astype(str).str.strip().map(interco_map_div)
-        
-        # Fill Inter-Co from Code Map using Invoice Company Code if Division Code is not available
-        interco_map_company = df_code_map[df_code_map['Division Code'].isna()]
-        interco_map_company = interco_map_company.set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
-        df_invoice['Inter-Co'] = df_invoice.apply(
-            lambda row: row['Inter-Co'] if isinstance(row['Inter-Co'], str) and row['Inter-Co'].strip() != '' else interco_map_company.get(row['Company'], ''),
-            axis=1
-        )
-
-
-        # Clean up DESC and Inter-Co
-        df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
-        df_invoice['Inter-Co'] = df_invoice['Inter-Co'].fillna('').astype(str)
-
-        # Only drop rows where Inter-Co is truly missing (not just repeated)
-        df_invoice = df_invoice[df_invoice['Inter-Co'].str.strip() != '']
-
-        # Add Approver
-        df_invoice['Approver'] = approver_name
-
-        # Aggregate totals by DESC, Inter-Co, CC, G/L ACCT, Approver
-        df_aggregated = df_invoice.groupby(
-            ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False
-        )['Monthly Premium'].sum().reset_index()
-
-        # Rename Monthly Premium to NET
-        df_aggregated.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
-
-        # Append aggregated rows to the template
-        df_result = pd.concat([df_template, df_aggregated], ignore_index=True)
-
-        # Export to Excel
-        output = io.BytesIO()
-        df_result.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
-
-        st.success("Template updated with aggregated invoice data!")
-        st.download_button(
-            label="Download Updated Medius Template",
-            data=output,
-            file_name="Updated_Aflac_Medius_Template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+        dept_map = df_heico_dept.set_index('Department')['Department Code'].
 
 
