@@ -128,7 +128,7 @@ if invoice_file and template_file and approver_name:
             label="Download Updated Medius Template",
             data=output,
             file_name="Updated_Aflac_Medius_Template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
