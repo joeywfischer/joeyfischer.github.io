@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("Medius Template Generator")
+st.title("Aflac Medius Template Generator")
 
-invoice_file = st.file_uploader("Upload Invoice Excel File", type=["xlsx"])
+invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 approver_name = st.text_input("Enter Approver Name")
 
@@ -45,50 +45,19 @@ if invoice_file and template_file and approver_name:
         dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
-        # Normalize Code Map for merging
-        df_code_map['Invoice Company Code'] = df_code_map['Invoice Company Code'].astype(str).str.strip().str.upper()
-        df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip()
-
-        # Merge to get Inter-Co based on both Company and Division
-        df_invoice = pd.merge(
-            df_invoice,
-            df_code_map[['Invoice Company Code', 'Division Code', 'Template Inter-Co']],
-            left_on=['Company', 'Division'],
-            right_on=['Invoice Company Code', 'Division Code'],
-            how='left'
-        )
-
-        # Fallback: if Inter-Co is missing, map by Company only
-        fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
-        df_invoice['Inter-Co'] = df_invoice.apply(
-            lambda row: row['Template Inter-Co'] if pd.notna(row['Template Inter-Co']) and row['Template Inter-Co'].strip() != '' else fallback_interco_map.get(row['Company'], ''),
-            axis=1
-        )
-
-        df_invoice.drop(columns=['Template Inter-Co', 'Invoice Company Code', 'Division Code'], inplace=True)
+        # Map Inter-Co from Code Map
+        interco_map = df_code_map.set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+        df_invoice['Inter-Co'] = df_invoice['Company'].map(interco_map)
 
         # Remove rows with missing Inter-Co
         df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
 
-        # Map DESC using both Division Code and Invoice Company Code
-        df_code_map_div = df_code_map[df_code_map['Division Code'].notna()]
-        df_code_map_div['Division Code'] = df_code_map_div['Division Code'].astype(str).str.strip()
-        df_code_map_div['Invoice Company Code'] = df_code_map_div['Invoice Company Code'].astype(str).str.strip().str.upper()
-        df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
-        df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
+        # Map DESC from Code Map using Division Code
+        desc_map_div = df_code_map[df_code_map['Division Code'].notna()]
+        desc_map_div = desc_map_div.set_index('Division Code')['Template Desc'].astype(str).str.strip().to_dict()
+        df_invoice['DESC'] = df_invoice['Division'].map(desc_map_div)
 
-        df_invoice = pd.merge(
-            df_invoice,
-            df_code_map_div[['Division Code', 'Invoice Company Code', 'Template Desc']],
-            left_on=['Division', 'Company'],
-            right_on=['Division Code', 'Invoice Company Code'],
-            how='left'
-        )
-
-        df_invoice['DESC'] = df_invoice['Template Desc']
-        df_invoice.drop(columns=['Template Desc', 'Division Code', 'Invoice Company Code'], inplace=True)
-
-        # Fallback DESC mapping using Invoice Company Code only
+        # Fill DESC from Code Map using Invoice Company Code if Division Code is not available
         desc_map_company = df_code_map[df_code_map['Division Code'].isna()]
         desc_map_company = desc_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
         df_invoice['DESC'] = df_invoice.apply(
@@ -122,7 +91,7 @@ if invoice_file and template_file and approver_name:
         st.download_button(
             label="Download Updated Medius Template",
             data=output,
-            file_name="Updated_Medius_Template.xlsx",
+            file_name="Updated_Aflac_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
