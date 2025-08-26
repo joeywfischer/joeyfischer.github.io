@@ -59,11 +59,17 @@ if invoice_file and template_file and approver_name:
         # Fallback map for Company only
         fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
         
-        # Apply mapping
         def get_interco(row):
+            # If Division is missing or blank, use fallback
+            if pd.isna(row['Division']) or str(row['Division']).strip() == '':
+                return fallback_interco_map.get(row['Company'], '')
+            
+            # Otherwise, try full match
             key = (row['Company'], row['Division'])
             if key in interco_map and interco_map[key]:
                 return interco_map[key]
+            
+            # Fallback if full match fails
             return fallback_interco_map.get(row['Company'], '')
         
         df_invoice['Inter-Co'] = df_invoice.apply(get_interco, axis=1)
