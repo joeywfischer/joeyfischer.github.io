@@ -45,7 +45,7 @@ if invoice_file and template_file and approver_name:
         dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
-        # Prepare Code Map for mapping
+        # Prepare Code Map
         df_code_map['Division Code'] = df_code_map['Division Code'].apply(lambda x: str(x).strip() if pd.notna(x) else None)
 
         # Separate string and numeric division codes
@@ -77,10 +77,16 @@ if invoice_file and template_file and approver_name:
         df_invoice['DESC'] = df_invoice.apply(map_desc, axis=1)
         df_invoice['Inter-Co'] = df_invoice.apply(map_interco, axis=1)
 
-        # Fallback Inter-Co mapping using Invoice Company Code
-        interco_map_company = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+        # Fallback DESC and Inter-Co using Invoice Company Code if Division Code is missing
+        fallback_desc_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
+        fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+
+        df_invoice['DESC'] = df_invoice.apply(
+            lambda row: row['DESC'] if row['DESC'] else fallback_desc_map.get(row['Company'], ''),
+            axis=1
+        )
         df_invoice['Inter-Co'] = df_invoice.apply(
-            lambda row: row['Inter-Co'] if row['Inter-Co'] else interco_map_company.get(row['Company'], ''),
+            lambda row: row['Inter-Co'] if row['Inter-Co'] else fallback_interco_map.get(row['Company'], ''),
             axis=1
         )
 
@@ -97,6 +103,9 @@ if invoice_file and template_file and approver_name:
 
         # Rename Monthly Premium to NET
         df_aggregated.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
+
+        # Remove rows with missing Inter-Co
+        df_aggregated = df_aggregated[df_aggregated['Inter-Co'].notna() & (df_aggregated['Inter-Co'].str.strip() != '')]
 
         # Append aggregated rows to the template
         df_result = pd.concat([df_template, df_aggregated], ignore_index=True)
@@ -116,5 +125,3 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
-
-
