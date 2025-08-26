@@ -46,8 +46,19 @@ if invoice_file and template_file and approver_name:
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
         # Map Inter-Co from Code Map
-        interco_map = df_code_map.set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
-        df_invoice['Inter-Co'] = df_invoice['Company'].map(interco_map)
+        # First, map using Division Code if available
+        interco_map_div = df_code_map[df_code_map['Division Code'].notna()]
+        interco_map_div = interco_map_div.set_index('Division Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+        
+        # Then, map using Invoice Company Code where Division Code is not available
+        interco_map_company = df_code_map[df_code_map['Division Code'].isna()]
+        interco_map_company = interco_map_company.set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+        
+        # Apply mapping logic
+        df_invoice['Inter-Co'] = df_invoice.apply(
+            lambda row: interco_map_div.get(row['Division'], interco_map_company.get(row['Company'], '')),
+            axis=1
+        )
 
         # Remove rows with missing Inter-Co
         df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
