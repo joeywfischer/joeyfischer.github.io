@@ -109,6 +109,7 @@ if invoice_file and template_file and approver_name:
 
         # Append aggregated rows to the template
         df_result = pd.concat([df_template, df_aggregated], ignore_index=True)
+        df_aggregated['DESC'] = df_aggregated['DESC'].fillna('').astype(str).replace('nan', '')
 
         # Export to Excel
         output = io.BytesIO()
