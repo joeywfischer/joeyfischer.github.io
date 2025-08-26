@@ -49,57 +49,34 @@ if invoice_file and template_file and approver_name:
         df_code_map['Invoice Company Code'] = df_code_map['Invoice Company Code'].astype(str).str.strip().str.upper()
         df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip().replace('', pd.NA)
 
-        # Inter-Co Mapping
+        # Create mapping dictionaries
         interco_map = df_code_map[df_code_map['Division Code'].notna()].drop_duplicates(subset=['Invoice Company Code', 'Division Code'])
         interco_map = interco_map.set_index(['Invoice Company Code', 'Division Code'])['Template Inter-Co'].astype(str).str.strip().to_dict()
         fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
 
-        def get_interco(row):
-            if pd.isna(row['Division']) or str(row['Division']).strip() == '':
-                return fallback_interco_map.get(row['Company'], '')
-            key = (row['Company'], row['Division'])
-            return interco_map.get(key, fallback_interco_map.get(row['Company'], ''))
-
-        df_invoice['Inter-Co'] = df_invoice.apply(get_interco, axis=1)
-
-        # DESC Mapping
         desc_map_full = df_code_map[df_code_map['Division Code'].notna()].drop_duplicates(subset=['Invoice Company Code', 'Division Code'])
         desc_map_full = desc_map_full.set_index(['Invoice Company Code', 'Division Code'])['Template Desc'].astype(str).str.strip().to_dict()
         desc_map_fallback = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
 
+        # Apply Inter-Co and DESC with fallback if no match
+        def get_interco(row):
+            key = (row['Company'], row['Division'])
+            return interco_map.get(key, fallback_interco_map.get(row['Company'], ''))
+
         def get_desc(row):
-            if pd.isna(row['Division']) or str(row['Division']).strip() == '':
-                return desc_map_fallback.get(row['Company'], '')
             key = (row['Company'], row['Division'])
             return desc_map_full.get(key, desc_map_fallback.get(row['Company'], ''))
 
+        df_invoice['Inter-Co'] = df_invoice.apply(get_interco, axis=1)
         df_invoice['DESC'] = df_invoice.apply(get_desc, axis=1)
         df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
-        
-        # Debug: Show rows with missing Division
-        st.subheader("🔍 Debug: Rows with Missing Division")
-        missing_div = df_invoice[df_invoice['Division'].isna()]
-        st.write("Rows with missing Division:", len(missing_div))
-        st.dataframe(missing_div[['Company', 'Division', 'Inter-Co', 'DESC']].head(10))
-        
-        # Debug: Show rows with fallback Inter-Co
-        st.subheader("🔍 Debug: Fallback Inter-Co Applied")
-        fallback_interco_rows = df_invoice[df_invoice['Division'].isna() | ~df_invoice.set_index(['Company', 'Division']).index.isin(interco_map.keys())]
-        st.write("Rows using fallback Inter-Co:", len(fallback_interco_rows))
-        st.dataframe(fallback_interco_rows[['Company', 'Division', 'Inter-Co']].head(10))
-        
-        # Debug: Show rows with fallback DESC
-        st.subheader("🔍 Debug: Fallback DESC Applied")
-        fallback_desc_rows = df_invoice[df_invoice['Division'].isna() | ~df_invoice.set_index(['Company', 'Division']).index.isin(desc_map_full.keys())]
-        st.write("Rows using fallback DESC:", len(fallback_desc_rows))
-        st.dataframe(fallback_desc_rows[['Company', 'Division', 'DESC']].head(10))
-        
-        # Debug: Show rows that will be dropped
-        st.subheader("⚠️ Debug: Rows Missing Inter-Co (Will Be Dropped)")
-        missing_interco = df_invoice[(df_invoice['Inter-Co'] == '') | (df_invoice['Inter-Co'].isna())]
-        st.write("Rows missing Inter-Co:", len(missing_interco))
-        st.dataframe(missing_interco[['Company', 'Division', 'Inter-Co', 'DESC']].head(10))
-        
+
+        # Debug: Show rows that failed to match Division Code
+        st.subheader("🧪 Debug: Unmatched Division Codes in Code Map")
+        unmatched_keys = df_invoice[~df_invoice.set_index(['Company', 'Division']).index.isin(interco_map.keys())]
+        st.write("Rows using fallback Inter-Co or DESC:", len(unmatched_keys))
+        st.dataframe(unmatched_keys[['Company', 'Division', 'Inter-Co', 'DESC']].head(10))
+
         # Remove rows with missing Inter-Co
         df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
 
@@ -121,14 +98,16 @@ if invoice_file and template_file and approver_name:
         output = io.BytesIO()
         df_result.to_excel(output, index=False, engine='openpyxl')
         output.seek(0)
-        
+
         st.success("Template updated with aggregated invoice data!")
         st.download_button(
             label="Download Updated Medius Template",
             data=output,
             file_name="Updated_Aflac_Medius_Template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
