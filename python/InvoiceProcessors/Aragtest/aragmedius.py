@@ -107,10 +107,10 @@ if invoice_file and template_file and approver_name:
         # Remove rows with missing Inter-Co
         df_aggregated = df_aggregated[df_aggregated['Inter-Co'].notna() & (df_aggregated['Inter-Co'].str.strip() != '')]
         df_aggregated['DESC'] = df_aggregated['DESC'].fillna('').astype(str).replace('nan', '')
-
         
         # Append aggregated rows to the template
         df_result = pd.concat([df_template, df_aggregated], ignore_index=True)
+        df_result = df_result.sort_values(by='Inter-Co', ascending=True)
 
         # Export to Excel
         output = io.BytesIO()
