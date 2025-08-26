@@ -45,33 +45,41 @@ if invoice_file and template_file and approver_name:
         dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
-        # Normalize Code Map for merging
+        # Normalize Code Map
         df_code_map['Invoice Company Code'] = df_code_map['Invoice Company Code'].astype(str).str.strip().str.upper()
         df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip()
 
-        # Merge to get Inter-Co based on both Company and Division
+        # Split code map into division-level and company-level
+        code_map_division = df_code_map[df_code_map['Division Code'].notna()]
+        code_map_company = df_code_map[df_code_map['Division Code'].isna()]
+
+        # First, try to map Inter-Co using both Company and Division
         df_invoice = pd.merge(
             df_invoice,
-            df_code_map[['Invoice Company Code', 'Division Code', 'Template Inter-Co']],
+            code_map_division[['Invoice Company Code', 'Division Code', 'Template Inter-Co']],
             left_on=['Company', 'Division'],
             right_on=['Invoice Company Code', 'Division Code'],
             how='left'
         )
 
-        # Fallback: if Inter-Co is missing, map by Company only
-        fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+        # Store division-level Inter-Co
+        df_invoice['Inter-Co'] = df_invoice['Template Inter-Co']
+
+        # Drop merge helper columns
+        df_invoice.drop(columns=['Template Inter-Co', 'Invoice Company Code', 'Division Code'], inplace=True)
+
+        # Fallback: map Inter-Co using only Company if division-level is missing
+        fallback_interco_map = code_map_company.set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
         df_invoice['Inter-Co'] = df_invoice.apply(
-            lambda row: row['Template Inter-Co'] if pd.notna(row['Template Inter-Co']) and row['Template Inter-Co'].strip() != '' else fallback_interco_map.get(row['Company'], ''),
+            lambda row: row['Inter-Co'] if pd.notna(row['Inter-Co']) and row['Inter-Co'].strip() != '' else fallback_interco_map.get(row['Company'], ''),
             axis=1
         )
-
-        df_invoice.drop(columns=['Template Inter-Co', 'Invoice Company Code', 'Division Code'], inplace=True)
 
         # Remove rows with missing Inter-Co
         df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
 
         # Map DESC using both Division Code and Invoice Company Code
-        df_code_map_div = df_code_map[df_code_map['Division Code'].notna()]
+        df_code_map_div = code_map_division.copy()
         df_code_map_div['Division Code'] = df_code_map_div['Division Code'].astype(str).str.strip()
         df_code_map_div['Invoice Company Code'] = df_code_map_div['Invoice Company Code'].astype(str).str.strip().str.upper()
         df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
@@ -89,8 +97,7 @@ if invoice_file and template_file and approver_name:
         df_invoice.drop(columns=['Template Desc', 'Division Code', 'Invoice Company Code'], inplace=True)
 
         # Fallback DESC mapping using Invoice Company Code only
-        desc_map_company = df_code_map[df_code_map['Division Code'].isna()]
-        desc_map_company = desc_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
+        desc_map_company = code_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
         df_invoice['DESC'] = df_invoice.apply(
             lambda row: row['DESC'] if isinstance(row['DESC'], str) and row['DESC'].strip() != '' else desc_map_company.get(row['Company'], ''),
             axis=1
@@ -128,5 +135,6 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
 
