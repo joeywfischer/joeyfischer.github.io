@@ -52,12 +52,25 @@ if invoice_file and template_file and approver_name:
         # Remove rows with missing Inter-Co
         df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
 
-        # Map DESC from Code Map using Division Code
-        desc_map_div = df_code_map[df_code_map['Division Code'].notna()]
-        desc_map_div = desc_map_div.set_index('Division Code')['Template Desc'].astype(str).str.strip().to_dict()
-        df_invoice['DESC'] = df_invoice['Division'].map(desc_map_div)
+        # Map DESC using both Division Code and Invoice Company Code
+        df_code_map_div = df_code_map[df_code_map['Division Code'].notna()]
+        df_code_map_div['Division Code'] = df_code_map_div['Division Code'].astype(str).str.strip()
+        df_code_map_div['Invoice Company Code'] = df_code_map_div['Invoice Company Code'].astype(str).str.strip().str.upper()
+        df_invoice['Division'] = df_invoice['Division'].astype(str).str.strip()
+        df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
 
-        # Fill DESC from Code Map using Invoice Company Code if Division Code is not available
+        df_invoice = pd.merge(
+            df_invoice,
+            df_code_map_div[['Division Code', 'Invoice Company Code', 'Template Desc']],
+            left_on=['Division', 'Company'],
+            right_on=['Division Code', 'Invoice Company Code'],
+            how='left'
+        )
+
+        df_invoice['DESC'] = df_invoice['Template Desc']
+        df_invoice.drop(columns=['Template Desc', 'Division Code', 'Invoice Company Code'], inplace=True)
+
+        # Fallback DESC mapping using Invoice Company Code only
         desc_map_company = df_code_map[df_code_map['Division Code'].isna()]
         desc_map_company = desc_map_company.set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
         df_invoice['DESC'] = df_invoice.apply(
@@ -97,6 +110,5 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
-
 
 
