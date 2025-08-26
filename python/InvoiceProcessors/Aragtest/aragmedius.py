@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("Medius Template Generator")
+st.title("Aflac Medius Template Generator")
 
-invoice_file = st.file_uploader("Upload Invoice Excel File", type=["xlsx"])
+invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 approver_name = st.text_input("Enter Approver Name")
 
@@ -122,9 +122,10 @@ if invoice_file and template_file and approver_name:
         st.download_button(
             label="Download Updated Medius Template",
             data=output,
-            file_name="Updated_Medius_Template.xlsx",
+            file_name="Updated_Aflac_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
     except Exception as e:
-        st.error(f"An error occurred: {e}") 
+        st.error(f"An error occurred: {e}")
+
