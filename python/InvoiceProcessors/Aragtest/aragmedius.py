@@ -45,11 +45,11 @@ if invoice_file and template_file and approver_name:
         dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
-        # Prepare Code Map for merge
+        # Normalize Code Map
         df_code_map['Invoice Company Code'] = df_code_map['Invoice Company Code'].astype(str).str.strip().str.upper()
         df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip()
         
-        # Merge to get Inter-Co based on both Company and Division
+        # Step 1: Merge on both Company and Division
         df_invoice = pd.merge(
             df_invoice,
             df_code_map[['Invoice Company Code', 'Division Code', 'Template Inter-Co']],
@@ -58,14 +58,18 @@ if invoice_file and template_file and approver_name:
             how='left'
         )
         
-        # Fallback: if Inter-Co is still missing, try mapping by Company only
+        # Step 2: Fallback Inter-Co mapping using Company only
         fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+        
+        # Fill missing Inter-Co values
         df_invoice['Inter-Co'] = df_invoice.apply(
             lambda row: row['Template Inter-Co'] if pd.notna(row['Template Inter-Co']) and row['Template Inter-Co'].strip() != '' else fallback_interco_map.get(row['Company'], ''),
             axis=1
         )
         
+        # Clean up
         df_invoice.drop(columns=['Template Inter-Co', 'Invoice Company Code', 'Division Code'], inplace=True)
+
         
 
         # Remove rows with missing Inter-Co
