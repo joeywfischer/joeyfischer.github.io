@@ -45,11 +45,11 @@ if invoice_file and template_file and approver_name:
         dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
-       # Normalize Code Map
+        # Normalize Code Map for merging
         df_code_map['Invoice Company Code'] = df_code_map['Invoice Company Code'].astype(str).str.strip().str.upper()
         df_code_map['Division Code'] = df_code_map['Division Code'].astype(str).str.strip()
-        
-        # Step 1: Merge with Division-specific Inter-Co values
+
+        # Merge to get Inter-Co based on both Company and Division
         df_invoice = pd.merge(
             df_invoice,
             df_code_map[['Invoice Company Code', 'Division Code', 'Template Inter-Co']],
@@ -57,19 +57,15 @@ if invoice_file and template_file and approver_name:
             right_on=['Invoice Company Code', 'Division Code'],
             how='left'
         )
-        
-        # Step 2: Fallback Inter-Co mapping using only Company
+
+        # Fallback: if Inter-Co is missing, map by Company only
         fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
-        
-        # Apply fallback only where Inter-Co is missing
         df_invoice['Inter-Co'] = df_invoice.apply(
             lambda row: row['Template Inter-Co'] if pd.notna(row['Template Inter-Co']) and row['Template Inter-Co'].strip() != '' else fallback_interco_map.get(row['Company'], ''),
             axis=1
         )
-        
-        # Clean up
-        df_invoice.drop(columns=['Template Inter-Co', 'Invoice Company Code', 'Division Code'], errors='ignore', inplace=True)
 
+        df_invoice.drop(columns=['Template Inter-Co', 'Invoice Company Code', 'Division Code'], inplace=True)
 
         # Remove rows with missing Inter-Co
         df_invoice = df_invoice[(df_invoice['Inter-Co'] != '') & (df_invoice['Inter-Co'].notna())]
@@ -132,4 +128,5 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
