@@ -112,25 +112,37 @@ if invoice_file and template_file and approver_name:
 
         df_aggregated = df_aggregated[df_aggregated['Inter-Co'].notna() & (df_aggregated['Inter-Co'].str.strip() != '')]
 
-        # === Handle HHI and THC Data ===
+       # === Handle HHI and THC Data ===
         df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
         df_hhi_thc['Monthly Premium'] = pd.to_numeric(df_hhi_thc['Monthly Premium'], errors='coerce')
         df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
-
+        
+        # Normalize Heico Departments sheet
+        df_heico_dept['Department Code'] = df_heico_dept['Department Code'].astype(str).str.strip()
+        df_heico_dept['Template Code'] = df_heico_dept['Template Code'].astype(str).str.strip()
+        
+        # Filter only departments that exist in Heico Departments sheet
+        df_hhi_thc = df_hhi_thc[df_hhi_thc['Department'].isin(df_heico_dept['Department Code'])]
+        
+        # Debug: Show matched departments
+        st.subheader("Debug: Matched HHI/THC Departments")
+        st.write("Matched Departments from Invoice Sheet:")
+        st.write(df_hhi_thc['Department'].unique())
+        
+        # Aggregate by Department
         df_dept_sum = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
-
-        dept_lookup = df_heico_dept.set_index('Department Code')[['Department', 'Template Code']].dropna().astype(str)
-        df_dept_sum['Department Code'] = df_dept_sum['Department'].map(lambda x: x if x in dept_lookup.index else None)
-        df_dept_sum = df_dept_sum[df_dept_sum['Department Code'].notna()]
-
-        df_dept_sum['DESC'] = df_dept_sum['Department Code']
-        df_dept_sum['CC'] = df_dept_sum['Department Code'].map(dept_lookup['Template Code'])
+        
+        # Map to DESC and CC using Heico Departments sheet
+        dept_lookup = df_heico_dept.set_index('Department Code')[['Department', 'Template Code']].dropna()
+        
+        df_dept_sum['DESC'] = df_dept_sum['Department']
+        df_dept_sum['CC'] = df_dept_sum['Department'].map(dept_lookup['Template Code'])
         df_dept_sum['G/L ACCT'] = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
         df_dept_sum['Inter-Co'] = 'HEICO'
         df_dept_sum['Approver'] = approver_name
         df_dept_sum.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
 
-        df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
+df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
 
         # === Combine and Export ===
         df_result = pd.concat([df_template, df_aggregated, df_dept_sum], ignore_index=True)
