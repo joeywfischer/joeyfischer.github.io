@@ -118,7 +118,7 @@ if invoice_file and template_file and approver_name:
         df_dept_sum['Department Code'] = df_dept_sum['Department'].map(lambda x: x if x in dept_lookup.index else None)
         df_dept_sum = df_dept_sum[df_dept_sum['Department Code'].notna()]
 
-        df_dept_sum['DESC'] = df_dept_sum['Department Code'].map(dept_lookup['Department'])
+        df_dept_sum['DESC'] = df_dept_sum['Department Code'].map(dept_lookup['Department Code'])
         df_dept_sum['CC'] = df_dept_sum['Department Code'].map(dept_lookup['Template Code'])
         df_dept_sum['G/L ACCT'] = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
         df_dept_sum['Inter-Co'] = 'HEICO'
