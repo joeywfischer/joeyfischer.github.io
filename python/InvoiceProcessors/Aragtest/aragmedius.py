@@ -142,7 +142,7 @@ if invoice_file and template_file and approver_name:
         df_dept_sum['Approver'] = approver_name
         df_dept_sum.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
 
-df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
+        df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
 
         # === Combine and Export ===
         df_result = pd.concat([df_template, df_aggregated, df_dept_sum], ignore_index=True)
