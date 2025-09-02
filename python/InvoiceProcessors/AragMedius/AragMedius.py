@@ -11,7 +11,7 @@ approver_name = st.text_input("Enter Approver Name")
 if invoice_file and template_file and approver_name:
     try:
         # Load sheets
-        df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
+        df_invoice = pd.read_excel(invoice_file, sheet_name='ARAG Self Bill Detail', engine='openpyxl')
         df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
         df_gl_acct = pd.read_excel(template_file, sheet_name='GL ACCT', engine='openpyxl')
         df_heico_dept = pd.read_excel(template_file, sheet_name='Heico Departments', engine='openpyxl')
