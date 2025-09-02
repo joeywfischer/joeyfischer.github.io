@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import io
-
 st.title("Aflac Medius Template Generator")
 
 invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
@@ -10,7 +9,7 @@ approver_name = st.text_input("Enter Approver Name")
 
 if invoice_file and template_file and approver_name:
     try:
-        # Load sheets
+        # Load invoice and template data
         df_invoice = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
         df_code_map = pd.read_excel(template_file, sheet_name='Code Map', engine='openpyxl')
         df_gl_acct = pd.read_excel(template_file, sheet_name='GL ACCT', engine='openpyxl')
@@ -23,65 +22,117 @@ if invoice_file and template_file and approver_name:
         df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
         df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
-        # === Non-Heico Aggregation ===
-        df_non_heico = df_invoice[~df_invoice['Company'].isin(['THC', 'HHI'])].copy()
-        df_non_heico['Group'] = 'Non-Heico'
-        df_non_heico['G/L ACCT'] = df_non_heico['Group'].map(df_gl_acct.set_index('Group')['G/L ACCT'].to_dict())
+        # Remove THC and HHI for now
+        df_invoice = df_invoice[~df_invoice['Company'].isin(['THC', 'HHI'])]
 
+        # Determine Group (Heico or Non-Heico)
+        df_invoice['Group'] = df_invoice['Company'].apply(lambda x: 'Heico' if x in ['HHI', 'THC'] else 'Non-Heico')
+
+        # Map G/L ACCT based on Group
+        gl_map = df_gl_acct.set_index('Group')['G/L ACCT'].to_dict()
+        df_invoice['G/L ACCT'] = df_invoice['Group'].map(gl_map)
+
+        # Strip Department prefix and map to Department Code
+        def strip_prefix(dept, company):
+            if company == 'HHI' and dept.startswith('10'):
+                return dept[2:]
+            elif company == 'THC' and dept.startswith('11'):
+                return dept[2:]
+            return dept
+
+        df_invoice['Stripped Dept'] = df_invoice.apply(lambda row: strip_prefix(row['Department'], row['Company']), axis=1)
         dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
-        df_non_heico['Stripped Dept'] = df_non_heico['Department']
-        df_non_heico['CC'] = df_non_heico['Stripped Dept'].map(dept_map)
+        df_invoice['CC'] = df_invoice['Stripped Dept'].map(dept_map)
 
+        # Prepare Code Map
         df_code_map['Division Code'] = df_code_map['Division Code'].apply(lambda x: str(x).strip() if pd.notna(x) else None)
-        desc_map = df_code_map.set_index('Division Code')['Template Desc'].astype(str).str.strip().to_dict()
-        interco_map = df_code_map.set_index('Division Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
 
-        df_non_heico['DESC'] = df_non_heico['Division'].map(desc_map)
-        df_non_heico['Inter-Co'] = df_non_heico['Division'].map(interco_map)
+        # Separate string and numeric division codes
+        df_code_map_str = df_code_map[df_code_map['Division Code'].apply(lambda x: not x.isdigit() if isinstance(x, str) else False)]
+        df_code_map_num = df_code_map[df_code_map['Division Code'].apply(lambda x: x.isdigit() if isinstance(x, str) else False)]
 
-        fallback_desc = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
-        fallback_interco = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+        # Create mapping dictionaries
+        desc_map_str = df_code_map_str.set_index('Division Code')['Template Desc'].astype(str).str.strip().to_dict()
+        interco_map_str = df_code_map_str.set_index('Division Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
 
-        df_non_heico['DESC'] = df_non_heico.apply(lambda row: row['DESC'] if row['DESC'] else fallback_desc.get(row['Company'], ''), axis=1)
-        df_non_heico['Inter-Co'] = df_non_heico.apply(lambda row: row['Inter-Co'] if row['Inter-Co'] else fallback_interco.get(row['Company'], ''), axis=1)
-        df_non_heico['Approver'] = approver_name
+        desc_map_num = df_code_map_num.set_index('Division Code')['Template Desc'].astype(str).str.strip().to_dict()
+        interco_map_num = df_code_map_num.set_index('Division Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
 
-        df_agg = df_non_heico.groupby(['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False)['Monthly Premium'].sum().reset_index()
-        df_agg.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
+        # Apply mapping based on type of Division
+        def map_desc(row):
+            division = row['Division']
+            if division.isdigit():
+                return desc_map_num.get(division, '')
+            else:
+                return desc_map_str.get(division, '')
 
-        # === Heico (HHI/THC) Aggregation using merge ===
-        df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
+        def map_interco(row):
+            division = row['Division']
+            if division.isdigit():
+                return interco_map_num.get(division, '')
+            else:
+                return interco_map_str.get(division, '')
+
+        df_invoice['DESC'] = df_invoice.apply(map_desc, axis=1)
+        df_invoice['Inter-Co'] = df_invoice.apply(map_interco, axis=1)
+
+        # Fallback DESC and Inter-Co using Invoice Company Code if Division Code is missing
+        fallback_desc_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Desc'].astype(str).str.strip().to_dict()
+        fallback_interco_map = df_code_map[df_code_map['Division Code'].isna()].set_index('Invoice Company Code')['Template Inter-Co'].astype(str).str.strip().to_dict()
+
+        df_invoice['DESC'] = df_invoice.apply(
+            lambda row: row['DESC'] if row['DESC'] else fallback_desc_map.get(row['Company'], ''),
+            axis=1
+        )
+        df_invoice['Inter-Co'] = df_invoice.apply(
+            lambda row: row['Inter-Co'] if row['Inter-Co'] else fallback_interco_map.get(row['Company'], ''),
+            axis=1
+        )
+
+        df_invoice['DESC'] = df_invoice['DESC'].fillna('').astype(str)
+        df_invoice['Approver'] = approver_name
+
+        # Aggregate totals by DESC, Inter-Co, CC, G/L ACCT, Approver
+        df_aggregated = df_invoice.groupby(
+            ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False
+        )['Monthly Premium'].sum().reset_index()
+
+        df_aggregated.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
+        df_aggregated = df_aggregated[df_aggregated['Inter-Co'].notna() & (df_aggregated['Inter-Co'].str.strip() != '')]
+        df_aggregated['DESC'] = df_aggregated['DESC'].fillna('').astype(str).replace('nan', '')
+
+        # Append aggregated rows to the template
+        df_result = pd.concat([df_template, df_aggregated], ignore_index=True)
+        df_result = df_result.sort_values(by='Inter-Co', ascending=True)
+
+        # === NEW SECTION: Handle HHI and THC invoices ===
+        df_hhi_thc = pd.read_excel(invoice_file, sheet_name='Detail', engine='openpyxl')
+        df_hhi_thc = df_hhi_thc[df_hhi_thc['Company'].isin(['HHI', 'THC'])].copy()
         df_hhi_thc['Monthly Premium'] = pd.to_numeric(df_hhi_thc['Monthly Premium'], errors='coerce')
+        df_hhi_thc['Department'] = df_hhi_thc['Department'].astype(str).str.strip()
 
         df_dept_sum = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
 
-        # Normalize both sides to string
-        df_dept_sum['Department'] = df_dept_sum['Department'].astype(str).str.strip()
-        df_heico_dept['Department Code'] = df_heico_dept['Department Code'].astype(str).str.strip()
+        # Map Department to Template Code and Department Name
+        dept_lookup = df_heico_dept.set_index('Department Code')[['Department', 'Template Code']].dropna().astype(str)
+        df_dept_sum['Department Code'] = df_dept_sum['Department'].map(lambda x: x if x in dept_lookup.index else None)
+        df_dept_sum = df_dept_sum[df_dept_sum['Department Code'].notna()]
 
-        # Merge instead of map
-        df_merged = pd.merge(
-            df_dept_sum,
-            df_heico_dept[['Department Code', 'Department', 'Template Code']],
-            left_on='Department',
-            right_on='Department Code',
-            how='left'
-        )
+        df_dept_sum['DESC'] = df_dept_sum['Department Code'].map(dept_lookup['Department'])
+        df_dept_sum['CC'] = df_dept_sum['Department Code'].map(dept_lookup['Template Code'])
+        df_dept_sum['G/L ACCT'] = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
+        df_dept_sum['Inter-Co'] = 'HEICO'
+        df_dept_sum['Approver'] = approver_name
+        df_dept_sum.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
 
-        df_merged['G/L ACCT'] = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
-        df_merged['Inter-Co'] = 'HEICO'
-        df_merged['Approver'] = approver_name
-        df_merged.rename(columns={'Monthly Premium': 'NET', 'Department_y': 'DESC', 'Template Code': 'CC'}, inplace=True)
+        df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
 
-        df_final = df_merged[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
+        # Append HHI/THC rows to result
+        df_result = pd.concat([df_result, df_dept_sum], ignore_index=True)
 
-        # === Export to Excel ===
-        df_result = pd.concat([df_template, df_agg], ignore_index=True).sort_values(by='Inter-Co')
-
+        # === EXPORT TO EXCEL ===
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_result.to_excel(writer, sheet_name='Updated Template', index=False)
-            df_final.to_excel(writer, sheet_name='HHI_THC Aggregation', index=False)
+        df_result.to_excel(output, index=False, engine='openpyxl')
         output.seek(0)
 
         st.success("Template updated with aggregated invoice data!")
@@ -93,5 +144,4 @@ if invoice_file and template_file and approver_name:
         )
 
     except Exception as e:
-        st.error(f"An error occurred: {e}")
-
+        st.error(f"An error occurred: {e}") 
