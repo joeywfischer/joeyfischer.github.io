@@ -116,14 +116,15 @@ if invoice_file and template_file and approver_name:
         
         # Prepare mapping from Heico Departments
         df_heico_dept['Department Code'] = pd.to_numeric(df_heico_dept['Department Code'], errors='coerce').astype('Int64')
-        dept_lookup = df_heico_dept.set_index('Department Code')[['Department Name', 'Template Code']].dropna()
+        dept_lookup = df_heico_dept.set_index('Department Code')[['Department', 'Template Code']].dropna()
         
-        # Map to DESC and CC
-        df_dept_sum['DESC'] = df_dept_sum['Department'].map(dept_lookup['Department Name'])
+        # Map Department to DESC and CC
+        df_dept_sum['DESC'] = df_dept_sum['Department'].map(dept_lookup['Department'])
         df_dept_sum['CC'] = df_dept_sum['Department'].map(dept_lookup['Template Code'])
         
         # Add fixed columns
-        df_dept_sum['G/L ACCT'] = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
+        gl_acct_value = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
+        df_dept_sum['G/L ACCT'] = gl_acct_value
         df_dept_sum['Inter-Co'] = 'HEICO'
         df_dept_sum['Approver'] = approver_name
         df_dept_sum.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
