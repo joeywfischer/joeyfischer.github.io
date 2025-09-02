@@ -20,27 +20,15 @@ if invoice_file and template_file and approver_name:
         # Normalize invoice data
         df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
         df_invoice['Division'] = df_invoice['Division'].apply(lambda x: str(x).strip() if pd.notna(x) else '')
+        df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
         df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
-
-        # === DEBUG: Show raw department values ===
-        st.subheader("🔍 Debug: Department Mapping Check")
-        invoice_departments = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])]['Department'].unique()
-        template_dept_codes = df_heico_dept['Department Code'].unique()
-        unmatched = set(invoice_departments) - set(template_dept_codes)
-
-        st.write("Unique 'Department' values from invoice file:")
-        st.write(sorted(invoice_departments))
-        st.write("Unique 'Department Code' values from template file:")
-        st.write(sorted(template_dept_codes))
-        st.write("Unmatched values (in invoice but not in template):")
-        st.write(sorted(unmatched))
 
         # === Non-Heico Aggregation ===
         df_non_heico = df_invoice[~df_invoice['Company'].isin(['THC', 'HHI'])].copy()
         df_non_heico['Group'] = 'Non-Heico'
         df_non_heico['G/L ACCT'] = df_non_heico['Group'].map(df_gl_acct.set_index('Group')['G/L ACCT'].to_dict())
 
-        dept_map = df_heico_dept.set_index('Department Code')['Template Code'].to_dict()
+        dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_non_heico['Stripped Dept'] = df_non_heico['Department']
         df_non_heico['CC'] = df_non_heico['Stripped Dept'].map(dept_map)
 
@@ -66,6 +54,10 @@ if invoice_file and template_file and approver_name:
         df_hhi_thc['Monthly Premium'] = pd.to_numeric(df_hhi_thc['Monthly Premium'], errors='coerce')
 
         df_dept_sum = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
+
+        # Normalize both sides to string
+        df_dept_sum['Department'] = df_dept_sum['Department'].astype(str).str.strip()
+        df_heico_dept['Department Code'] = df_heico_dept['Department Code'].astype(str).str.strip()
 
         dept_lookup = df_heico_dept.set_index('Department Code')[['Department', 'Template Code']].dropna()
         df_dept_sum['DESC'] = df_dept_sum['Department'].map(dept_lookup['Department'])
@@ -95,5 +87,3 @@ if invoice_file and template_file and approver_name:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
-
-
