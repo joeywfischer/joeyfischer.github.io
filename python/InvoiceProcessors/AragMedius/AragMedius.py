@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.title("Aflac Medius Template Generator")
+st.title("Arag Medius Template Generator")
 
-invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
+invoice_file = st.file_uploader("Upload Arag Invoice Excel File", type=["xlsx"])
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 approver_name = st.text_input("Enter Approver Name")
 
@@ -21,7 +21,7 @@ if invoice_file and template_file and approver_name:
         df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
         df_invoice['Division'] = df_invoice['Division'].apply(lambda x: str(x).strip() if pd.notna(x) else '')
         df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
-        df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
+        df_invoice['Real Premium'] = pd.to_numeric(df_invoice['Real Premium'], errors='coerce')
         df_heico_dept['Department Code'] = df_heico_dept['Department Code'].astype(str).str.strip()
         df_heico_dept['Department Name'] = df_heico_dept['Department Name'].astype(str).str.strip()
         df_heico_dept['Template Code'] = df_heico_dept['Template Code'].astype(str).str.strip()
@@ -57,7 +57,7 @@ if invoice_file and template_file and approver_name:
         # Aggregate
         df_aggregated = df_non_heico.groupby(
             ['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False
-        )['Monthly Premium'].sum().reset_index().rename(columns={'Monthly Premium': 'NET'})
+        )['Real Premium'].sum().reset_index().rename(columns={'Real Premium': 'NET'})
 
         # === Clean Template Before Appending ===
         df_template = df_template[df_template['Inter-Co'].notna() & (df_template['Inter-Co'].str.strip() != '')]
@@ -65,10 +65,10 @@ if invoice_file and template_file and approver_name:
         
         # === Handle HHI/THC ===
         df_heico = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
-        df_heico['Monthly Premium'] = pd.to_numeric(df_heico['Monthly Premium'], errors='coerce')
+        df_heico['Real Premium'] = pd.to_numeric(df_heico['Real Premium'], errors='coerce')
         df_heico['Department'] = df_heico['Department'].astype(str).str.strip()
 
-        df_dept_sum = df_heico.groupby('Department')['Monthly Premium'].sum().reset_index()
+        df_dept_sum = df_heico.groupby('Department')['Real Premium'].sum().reset_index()
         df_dept_sum['Department Code'] = df_dept_sum['Department']
         df_dept_sum = df_dept_sum[df_dept_sum['Department Code'].isin(df_heico_dept['Department Code'])]
 
@@ -79,7 +79,7 @@ if invoice_file and template_file and approver_name:
         df_dept_sum['G/L ACCT'] = gl_map.get('Heico', '')
         df_dept_sum['Inter-Co'] = ''  # Clear Inter-Co for HHI/THC
         df_dept_sum['Approver'] = approver_name
-        df_dept_sum.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
+        df_dept_sum.rename(columns={'Real Premium': 'NET'}, inplace=True)
 
         df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
 
@@ -96,7 +96,7 @@ if invoice_file and template_file and approver_name:
         st.download_button(
             label="Download Updated Medius Template",
             data=output,
-            file_name="Updated_Aflac_Medius_Template.xlsx",
+            file_name="Updated_Arag_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
