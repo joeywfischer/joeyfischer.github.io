@@ -131,10 +131,13 @@ if invoice_file and template_file and approver_name:
         # Append HHI/THC rows to result
         df_result = pd.concat([df_result, df_dept_sum], ignore_index=True)
 
-        # === EXPORT TO EXCEL ===
+        # === EXPORT TO EXCEL WITH MULTIPLE SHEETS ===
         output = io.BytesIO()
-        df_result.to_excel(output, index=False, engine='openpyxl')
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_result.to_excel(writer, sheet_name='Updated Template', index=False)
+            df_dept_sum.to_excel(writer, sheet_name='HHI_THC Aggregation', index=False)
         output.seek(0)
+
 
         st.success("Template updated with aggregated invoice data!")
         st.download_button(
