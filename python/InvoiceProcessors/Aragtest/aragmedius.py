@@ -128,14 +128,6 @@ if invoice_file and template_file and approver_name:
 
         df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
 
-        # === DEBUG BOX ===
-        st.subheader("Debug: HHI/THC Department Aggregation")
-        st.write("Raw Aggregated Data:")
-        st.dataframe(df_dept_sum)
-
-        expected_cols = ['Department', 'Department Code', 'DESC', 'CC']
-        available_cols = [col for col in expected_cols if col in df_dept_sum.columns]
-
         if available_cols:
             st.write("Mapped Columns:")
             st.dataframe(df_dept_sum[available_cols])
