@@ -86,7 +86,7 @@ if invoice_file and template_file and approver_name:
         # === Combine and Export ===
         df_result = pd.concat([df_template, df_aggregated, df_dept_sum], ignore_index=True)
         df_result = df_result.sort_values(by='Inter-Co', ascending=True)
-        df_result = df_result[~(df_result['Inter-Co'].fillna('').str.strip() == '') & ~(df_result['CC'].fillna('').str.strip() == '')]
+        df_result = df_result[~((df_result['Inter-Co'].fillna('').str.strip() == '') & (df_result['CC'].fillna('').str.strip() == ''))]
 
         output = io.BytesIO()
         df_result.to_excel(output, index=False, engine='openpyxl')
