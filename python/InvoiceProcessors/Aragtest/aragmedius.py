@@ -20,27 +20,15 @@ if invoice_file and template_file and approver_name:
         # Normalize invoice data
         df_invoice['Company'] = df_invoice['Company'].astype(str).str.strip().str.upper()
         df_invoice['Division'] = df_invoice['Division'].apply(lambda x: str(x).strip() if pd.notna(x) else '')
+        df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
         df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
-
-        # === DEBUG: Show raw department values ===
-        st.subheader("🔍 Debug: Department Mapping Check")
-        invoice_departments = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])]['Department'].unique()
-        template_dept_codes = df_heico_dept['Department Code'].unique()
-        unmatched = set(invoice_departments) - set(template_dept_codes)
-
-        st.write("Unique 'Department' values from invoice file:")
-        st.write(sorted(invoice_departments))
-        st.write("Unique 'Department Code' values from template file:")
-        st.write(sorted(template_dept_codes))
-        st.write("Unmatched values (in invoice but not in template):")
-        st.write(sorted(unmatched))
 
         # === Non-Heico Aggregation ===
         df_non_heico = df_invoice[~df_invoice['Company'].isin(['THC', 'HHI'])].copy()
         df_non_heico['Group'] = 'Non-Heico'
         df_non_heico['G/L ACCT'] = df_non_heico['Group'].map(df_gl_acct.set_index('Group')['G/L ACCT'].to_dict())
 
-        dept_map = df_heico_dept.set_index('Department Code')['Template Code'].to_dict()
+        dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
         df_non_heico['Stripped Dept'] = df_non_heico['Department']
         df_non_heico['CC'] = df_non_heico['Stripped Dept'].map(dept_map)
 
@@ -61,20 +49,31 @@ if invoice_file and template_file and approver_name:
         df_agg = df_non_heico.groupby(['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False)['Monthly Premium'].sum().reset_index()
         df_agg.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
 
-        # === Heico (HHI/THC) Aggregation ===
+        # === Heico (HHI/THC) Aggregation using merge ===
         df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
         df_hhi_thc['Monthly Premium'] = pd.to_numeric(df_hhi_thc['Monthly Premium'], errors='coerce')
 
         df_dept_sum = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
 
-        dept_lookup = df_heico_dept.set_index('Department Code')[['Department', 'Template Code']].dropna()
-        df_dept_sum['DESC'] = df_dept_sum['Department'].map(dept_lookup['Department'])
-        df_dept_sum['CC'] = df_dept_sum['Department'].map(dept_lookup['Template Code'])
-        df_dept_sum['G/L ACCT'] = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
-        df_dept_sum['Inter-Co'] = 'HEICO'
-        df_dept_sum['Approver'] = approver_name
-        df_dept_sum.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
-        df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
+        # Normalize both sides to string
+        df_dept_sum['Department'] = df_dept_sum['Department'].astype(str).str.strip()
+        df_heico_dept['Department Code'] = df_heico_dept['Department Code'].astype(str).str.strip()
+
+        # Merge instead of map
+        df_merged = pd.merge(
+            df_dept_sum,
+            df_heico_dept[['Department Code', 'Department', 'Template Code']],
+            left_on='Department',
+            right_on='Department Code',
+            how='left'
+        )
+
+        df_merged['G/L ACCT'] = df_gl_acct[df_gl_acct['Group'] == 'Heico']['G/L ACCT'].values[0]
+        df_merged['Inter-Co'] = 'HEICO'
+        df_merged['Approver'] = approver_name
+        df_merged.rename(columns={'Monthly Premium': 'NET', 'Department_y': 'DESC', 'Template Code': 'CC'}, inplace=True)
+
+        df_final = df_merged[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
 
         # === Export to Excel ===
         df_result = pd.concat([df_template, df_agg], ignore_index=True).sort_values(by='Inter-Co')
@@ -82,7 +81,7 @@ if invoice_file and template_file and approver_name:
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df_result.to_excel(writer, sheet_name='Updated Template', index=False)
-            df_dept_sum.to_excel(writer, sheet_name='HHI_THC Aggregation', index=False)
+            df_final.to_excel(writer, sheet_name='HHI_THC Aggregation', index=False)
         output.seek(0)
 
         st.success("Template updated with aggregated invoice data!")
