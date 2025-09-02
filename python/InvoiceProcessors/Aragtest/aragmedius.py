@@ -1,30 +1,13 @@
 import streamlit as st
 import pandas as pd
 import io
+import traceback
 
 st.title("Aflac Medius Template Generator")
 
 invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"])
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 approver_name = st.text_input("Enter Approver Name")
-
-# === DEBUG: Show raw department values ===
-st.subheader("🔍 Debug: Department Mapping Check")
-        
-        # Show unique values from invoice
-invoice_departments = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])]['Department'].unique()
-st.write("Unique 'Department' values from invoice file:")
-st.write(sorted(invoice_departments))
-        
-        # Show unique values from template
-template_dept_codes = df_heico_dept['Department Code'].unique()
-st.write("Unique 'Department Code' values from template file:")
-st.write(sorted(template_dept_codes))
-        
-        # Show unmatched values
-unmatched = set(invoice_departments) - set(template_dept_codes)
-st.write("Unmatched values (in invoice but not in template):")
-st.write(sorted(unmatched))
 
 if invoice_file and template_file and approver_name:
     try:
@@ -98,7 +81,9 @@ if invoice_file and template_file and approver_name:
             file_name="Updated_Aflac_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
     except Exception as e:
         st.error(f"An error occurred: {e}")
+        st.text("Full traceback:")
+        st.text(traceback.format_exc())
+
 
