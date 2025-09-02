@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import io
-import traceback
 
 st.title("Aflac Medius Template Generator")
 
@@ -23,13 +22,26 @@ if invoice_file and template_file and approver_name:
         df_invoice['Division'] = df_invoice['Division'].apply(lambda x: str(x).strip() if pd.notna(x) else '')
         df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
+        # === DEBUG: Show raw department values ===
+        st.subheader("🔍 Debug: Department Mapping Check")
+        invoice_departments = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])]['Department'].unique()
+        template_dept_codes = df_heico_dept['Department Code'].unique()
+        unmatched = set(invoice_departments) - set(template_dept_codes)
+
+        st.write("Unique 'Department' values from invoice file:")
+        st.write(sorted(invoice_departments))
+        st.write("Unique 'Department Code' values from template file:")
+        st.write(sorted(template_dept_codes))
+        st.write("Unmatched values (in invoice but not in template):")
+        st.write(sorted(unmatched))
+
         # === Non-Heico Aggregation ===
         df_non_heico = df_invoice[~df_invoice['Company'].isin(['THC', 'HHI'])].copy()
         df_non_heico['Group'] = 'Non-Heico'
         df_non_heico['G/L ACCT'] = df_non_heico['Group'].map(df_gl_acct.set_index('Group')['G/L ACCT'].to_dict())
 
-        dept_map = df_heico_dept.set_index('Department')['Department Code'].astype(str).str.strip().to_dict()
-        df_non_heico['Stripped Dept'] = df_non_heico['Department'].astype(str)
+        dept_map = df_heico_dept.set_index('Department Code')['Template Code'].to_dict()
+        df_non_heico['Stripped Dept'] = df_non_heico['Department']
         df_non_heico['CC'] = df_non_heico['Stripped Dept'].map(dept_map)
 
         df_code_map['Division Code'] = df_code_map['Division Code'].apply(lambda x: str(x).strip() if pd.notna(x) else None)
@@ -55,7 +67,6 @@ if invoice_file and template_file and approver_name:
 
         df_dept_sum = df_hhi_thc.groupby('Department')['Monthly Premium'].sum().reset_index()
 
-        # No type conversion here — use raw values
         dept_lookup = df_heico_dept.set_index('Department Code')[['Department', 'Template Code']].dropna()
         df_dept_sum['DESC'] = df_dept_sum['Department'].map(dept_lookup['Department'])
         df_dept_sum['CC'] = df_dept_sum['Department'].map(dept_lookup['Template Code'])
@@ -81,9 +92,8 @@ if invoice_file and template_file and approver_name:
             file_name="Updated_Aflac_Medius_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
     except Exception as e:
         st.error(f"An error occurred: {e}")
-        st.text("Full traceback:")
-        st.text(traceback.format_exc())
 
 
