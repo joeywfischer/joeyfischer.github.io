@@ -61,7 +61,7 @@ if invoice_file and template_file and approver_name:
 
         # === Clean Template Before Appending ===
         df_template = df_template[df_template['Inter-Co'].notna() & (df_template['Inter-Co'].str.strip() != '')]
-        df_template['DESC'] = df_template['DESC'].fillna('').astype(str).replace('nan', '')
+        df_aggregated['DESC'] = df_aggregated['DESC'].fillna('').apply(lambda x: '' if str(x).lower() == 'nan' else str(x))
 
         # === Handle HHI/THC ===
         df_heico = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
