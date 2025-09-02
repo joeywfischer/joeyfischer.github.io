@@ -128,12 +128,6 @@ if invoice_file and template_file and approver_name:
 
         df_dept_sum = df_dept_sum[['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver', 'NET']]
 
-        if available_cols:
-            st.write("Mapped Columns:")
-            st.dataframe(df_dept_sum[available_cols])
-        else:
-            st.warning("Expected mapping columns not found in the DataFrame.")
-
         # Append HHI/THC rows to result
         df_result = pd.concat([df_result, df_dept_sum], ignore_index=True)
 
