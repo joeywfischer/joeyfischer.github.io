@@ -62,7 +62,7 @@ if invoice_file and template_file and approver_name:
         # === Clean Template Before Appending ===
         df_template = df_template[df_template['Inter-Co'].notna() & (df_template['Inter-Co'].str.strip() != '')]
         df_aggregated['DESC'] = df_aggregated['DESC'].fillna('').apply(lambda x: '' if str(x).lower() == 'nan' else str(x))
-
+        
         # === Handle HHI/THC ===
         df_heico = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
         df_heico['Monthly Premium'] = pd.to_numeric(df_heico['Monthly Premium'], errors='coerce')
@@ -86,6 +86,7 @@ if invoice_file and template_file and approver_name:
         # === Combine and Export ===
         df_result = pd.concat([df_template, df_aggregated, df_dept_sum], ignore_index=True)
         df_result = df_result.sort_values(by='Inter-Co', ascending=True)
+        df_result = df_result[df_result['Inter-Co'].notna() & df_result['Inter-Co'].str.strip().ne('') & df_result['CC'].notna() & df_result['CC'].str.strip().ne('')]
 
         output = io.BytesIO()
         df_result.to_excel(output, index=False, engine='openpyxl')
