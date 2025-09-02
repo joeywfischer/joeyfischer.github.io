@@ -24,6 +24,31 @@ if invoice_file and template_file and approver_name:
         df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
         df_invoice['Monthly Premium'] = pd.to_numeric(df_invoice['Monthly Premium'], errors='coerce')
 
+        # === DEBUG: Check Department Matching ===
+        st.subheader("Debug: Department Matching")
+        
+        # Normalize columns
+        df_invoice['Department'] = df_invoice['Department'].astype(str).str.strip()
+        df_heico_dept['Department Code'] = df_heico_dept['Department Code'].astype(str).str.strip()
+        
+        # Show unique values
+        unique_invoice_departments = sorted(df_invoice['Department'].unique())
+        unique_heico_department_codes = sorted(df_heico_dept['Department Code'].unique())
+        
+        st.write("Unique 'Department' values from Invoice Sheet:")
+        st.write(unique_invoice_departments)
+        
+        st.write("Unique 'Department Code' values from Heico Departments Sheet:")
+        st.write(unique_heico_department_codes)
+        
+        # Show mismatches
+        missing_departments = [dept for dept in unique_invoice_departments if dept not in unique_heico_department_codes]
+        if missing_departments:
+            st.warning("Departments in invoice sheet not found in Heico Departments sheet:")
+            st.write(missing_departments)
+        else:
+            st.success("All departments from invoice sheet are found in Heico Departments sheet.")
+
         # Remove THC and HHI temporarily
         df_invoice_filtered = df_invoice[~df_invoice['Company'].isin(['THC', 'HHI'])].copy()
         df_invoice_filtered['Group'] = df_invoice_filtered['Company'].apply(lambda x: 'Heico' if x in ['HHI', 'THC'] else 'Non-Heico')
