@@ -8,6 +8,24 @@ invoice_file = st.file_uploader("Upload Aflac Invoice Excel File", type=["xlsx"]
 template_file = st.file_uploader("Upload Medius Template Excel File", type=["xlsx"])
 approver_name = st.text_input("Enter Approver Name")
 
+# === DEBUG: Show raw department values ===
+st.subheader("🔍 Debug: Department Mapping Check")
+        
+        # Show unique values from invoice
+invoice_departments = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])]['Department'].unique()
+st.write("Unique 'Department' values from invoice file:")
+st.write(sorted(invoice_departments))
+        
+        # Show unique values from template
+template_dept_codes = df_heico_dept['Department Code'].unique()
+st.write("Unique 'Department Code' values from template file:")
+st.write(sorted(template_dept_codes))
+        
+        # Show unmatched values
+unmatched = set(invoice_departments) - set(template_dept_codes)
+st.write("Unmatched values (in invoice but not in template):")
+st.write(sorted(unmatched))
+
 if invoice_file and template_file and approver_name:
     try:
         # Load sheets
@@ -47,23 +65,6 @@ if invoice_file and template_file and approver_name:
 
         df_agg = df_non_heico.groupby(['DESC', 'Inter-Co', 'CC', 'G/L ACCT', 'Approver'], dropna=False)['Monthly Premium'].sum().reset_index()
         df_agg.rename(columns={'Monthly Premium': 'NET'}, inplace=True)
-        # === DEBUG: Show raw department values ===
-        st.subheader("🔍 Debug: Department Mapping Check")
-        
-        # Show unique values from invoice
-        invoice_departments = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])]['Department'].unique()
-        st.write("Unique 'Department' values from invoice file:")
-        st.write(sorted(invoice_departments))
-        
-        # Show unique values from template
-        template_dept_codes = df_heico_dept['Department Code'].unique()
-        st.write("Unique 'Department Code' values from template file:")
-        st.write(sorted(template_dept_codes))
-        
-        # Show unmatched values
-        unmatched = set(invoice_departments) - set(template_dept_codes)
-        st.write("Unmatched values (in invoice but not in template):")
-        st.write(sorted(unmatched))
 
         # === Heico (HHI/THC) Aggregation ===
         df_hhi_thc = df_invoice[df_invoice['Company'].isin(['HHI', 'THC'])].copy()
